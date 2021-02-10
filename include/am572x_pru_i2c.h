@@ -10,13 +10,15 @@
  */
 
 
-#ifndef PRU_I2C_H
-#define PRU_I2C_H
+#ifndef AM572x_PRU_I2C_H_
+#define AM572x_PRU_I2C_H_
+
+#include <stdint.h>
 
 typedef struct {
   /* PRU_I2C_REVNB_LO register bit field */
   union{
-    volatile uint16_t I2C_REVNB_LO
+    volatile uint16_t I2C_REVNB_LO;
       volatile struct {
         unsigned I2C_REVNB_LO :16; //15:0
       } I2C_REVNB_LO_bit;
@@ -27,7 +29,7 @@ typedef struct {
 
   /* PRU_I2C_REVNB_HI register bit field */
   union{
-    volatile uint16_t I2C_REVNB_HI
+    volatile uint16_t I2C_REVNB_HI;
       volatile struct {
         unsigned I2C_REVNB_HI :16; //15:0
       } I2C_REVNB_HI_bit;
@@ -430,7 +432,7 @@ typedef struct {
       uint16_t SA     : 10; // 9:0
       uint16_t RSVD10 : 6; // 15:10
     } I2C_SA_bit;
-
+};
     // 16 bit compensate offset 
     uint8_t rsvdae[2];  //0xAE-0xAF
 
@@ -591,8 +593,8 @@ typedef struct {
       } I2C_SBLOCK_bit;
     }; // 0xD4-0xD5
 
-  }pruI2c;
+  } pruI2C;
   // TODO: check that the next statement is correct ! :-)
-  volatile __far pruI2c CT_I2C1 __attribute__((cregister("I2C1", near), peripheral));
+  volatile __far pruI2C CT_I2C1 __attribute__((cregister("I2C1", near), peripheral));
 
-#endif /*PRU_I2C_H */
+#endif /*AM572x_PRU_I2C_H */

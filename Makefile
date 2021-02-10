@@ -1,8 +1,8 @@
-all: read_add_from_pru.pru1_1.out \
-	read_add_from_pru.pru1_1.out
+all: am572x_pru_i2c_driver.pru1_1.out \
+	am572x_pru_i2c_driver.pru1_1.out
 	@echo "Built!"
 
-include ../../include/
+#include include/
 include /var/lib/cloud9/common/Makefile
 
 clean:

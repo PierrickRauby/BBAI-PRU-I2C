@@ -19,7 +19,7 @@
 #include "include/am572x_pru_i2c_driver.h"
 #define CM_L4PER_I2C1_CLKCTRL 0x4A0097A0
 
-volatile pruI2c* PRU_I2C
+volatile pruI2C* PRU_I2C
 uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
   /* 24.1.5.1.1.1.1 Configure the Module Before Enabling the I2C Controller*/
   /* 1. Enable the functional and interface clocks (p5740).*/
@@ -70,7 +70,7 @@ uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
   PRU_I2C->I2C_CON_bit.MST=0x1; //master
   PRU_I2C->I2C_CON_bit.TRX=0x1; //transmit
 
-
+return 1;
 
 
 
