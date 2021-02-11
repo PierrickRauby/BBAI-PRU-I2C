@@ -572,7 +572,7 @@ typedef struct {
         uint16_t OA2_ACT : 1; // 2
         uint16_t OA3_ACT : 1; // 3
         uint16_t RSVD4   : 12; // 15:4
-      } ACTOA_bit;
+      } I2C_ACTOA_bit;
     }; // 0xD0-0xD1
 
 
