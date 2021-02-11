@@ -4,8 +4,3 @@ all: am572x_pru_i2c_driver.pru1_1.out \
 
 #include include/
 include /var/lib/cloud9/common/Makefile
-
-clean:
-	rm -f *.out
-	rm -rf $(GEN_DIR)
-

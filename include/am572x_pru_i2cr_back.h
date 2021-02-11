@@ -38,7 +38,7 @@ typedef struct {
   // 16 bit compensate offset 
   // no merge with the following in case the compensation is not needed 
   //uint8_t rsvd06[2];  //0x06-0x7
-  uint8_t rsvd08[8];  //0x08-0x0F
+  //uint8_t rsvd08[8];  //0x08-0x0F
 
   /* PRU_I2C_SYSC register bit field */
   union {
@@ -56,7 +56,7 @@ typedef struct {
   };  // 0x10-0x11
 
   // 16 bit compensate offset 
-  //uint8_t rsvd012[2];  //0x12-0x13 
+  uint8_t rsvd012[2];  //0x12-0x13 
   uint8_t rsvd14[12];  // 0x14-0x1F
 
   /* I2C_EOI register bit field */
@@ -572,7 +572,7 @@ typedef struct {
         uint16_t OA2_ACT : 1; // 2
         uint16_t OA3_ACT : 1; // 3
         uint16_t RSVD4   : 12; // 15:4
-      } I2C_ACTOA_bit;
+      } ACTOA_bit;
     }; // 0xD0-0xD1
 
 
@@ -595,7 +595,6 @@ typedef struct {
 
   } pruI2C;
   // TODO: check that the next statement is correct ! :-)
-// here I define CT_I2C1 as a pruI2C, but not sure about the __attribute__ part
   volatile __far pruI2C CT_I2C1 __attribute__((cregister("I2C1", near), peripheral));
 
 #endif /*AM572x_PRU_I2C_H */
