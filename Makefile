@@ -39,7 +39,7 @@ CFLAGS= --include_path=./include --include_path=$(COMMON) --include_path=$(PRU_S
 	--obj_directory=$(GEN_DIR) --pp_directory=$(GEN_DIR) --asm_directory=$(GEN_DIR) -ppd -ppa --asm_listing \
 	--c_src_interlist
 
-all: stop compile place start
+all: clean stop compile place start
 	@echo '---> DONE: PRU$(PRUN) should be up and running' 
 
 
@@ -60,21 +60,16 @@ compile: $(GEN_DIR)/$(TARGET)$(EXE)
 
 
 $(GEN_DIR)/$(TARGET)$(EXE): $(GEN_DIR)/$(OBJ)
-	@echo "linking....$(GEN_DIR)/$(OBJ)"
+	@echo "---> Linking: $(GEN_DIR)/$(OBJ)"
 	@$(LD) $@ $^ $(LDFLAGS) 
 
 
-$%.o:%.c
-	@echo "compiled $(GEN_DIR)/%.o"
-	@mkdir -p $(GEN_DIR)
-	@echo 'CC	$^'
-	@$(CC) --output_file=$@ $^ $(CFLAGS)
-
 $(GEN_DIR)/%.o: %.c
-	@echo "compiled $(GEN_DIR)/%.o"
+	@echo "---> Compiling: $<"
 	@mkdir -p $(GEN_DIR)
 	@echo 'CC	$^'
 	@$(CC) $@ $^ $(CFLAGS)
+	@echo "---> Compiled: $<"
 
 
 clean:

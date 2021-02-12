@@ -1,5 +1,5 @@
 /*
- * hello.pru1_1.c
+ * main.c
  * Modified by Pierrick Rauby < PierrickRauby - pierrick.rauby@gmail.com >
  * Based on the cloud9 examples:
  * https://github.com/jadonk/cloud9-examples/blob/master/BeagleBone/AI/pru/blinkInternalLED.pru1_1.c
@@ -22,6 +22,7 @@
 #include <pru_rpmsg.h>
 #include "hw_types.h"
 #include "am572x_pru_i2c_driver.h"
+#include "am572x_pru_i2c.h" // to remove 
 
 volatile register unsigned int __R30;
 volatile register unsigned int __R31;
@@ -49,9 +50,11 @@ struct pru_rpmsg_transport transport;
 uint16_t src, dst, len;
 volatile uint8_t *status;
 int i;
-unsigned int sample;
+unsigned long sample;
+// Points to the two GPIO ports that are used
+uint32_t *gpio5 = (uint32_t *)GPIO5;
 
-
+volatile pruI2C *PRU_I2Cmain=&CT_I2C1;
 uint8_t pru_i2c_test_function( uint8_t i2cDevice){
 
     /* Allow OCP master port access by the PRU so the PRU can read external memories */
@@ -62,48 +65,60 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
     status = &resourceTable.rpmsg_vdev.status;
     while (!(*status & VIRTIO_CONFIG_S_DRIVER_OK));
     /* Initialize the RPMsg transport structure */
-    pru_rpmsg_init(&transport, &resourceTable.rpmsg_vring0, &resourceTable.rpmsg_vring1, TO_ARM_HOST, FROM_ARM_HOST);
-    /* Create the RPMsg channel between the PRU and ARM user space using the transport structure. */
-    while (pru_rpmsg_channel(RPMSG_NS_CREATE, &transport, CHAN_NAME, CHAN_DESC, CHAN_PORT) != PRU_RPMSG_SUCCESS);
+    pru_rpmsg_init(&transport, &resourceTable.rpmsg_vring0,
+        &resourceTable.rpmsg_vring1, TO_ARM_HOST, FROM_ARM_HOST);
+    /* Create the RPMsg channel between the PRU and ARM user space using the 
+       transport structure. */
+    while (pru_rpmsg_channel(RPMSG_NS_CREATE, &transport, CHAN_NAME, CHAN_DESC, 
+          CHAN_PORT) != PRU_RPMSG_SUCCESS);
     while (1) {
       /* Check bit 30 of register R31 to see if the ARM has kicked us */
+
+    uint32_t *gpio5 = (uint32_t *)GPIO5;
+    gpio5[GPIO_SETDATAOUT]   = USR1;  // Turn the USR1 LED on
+
+    __delay_cycles(1000000000/5);   // Wait 1/2 second
+
+    gpio5[GPIO_CLEARDATAOUT] = USR1;  // Off
+
+    __delay_cycles(1000000000/5);   // Wait 1/2 second
+
       if (__R31 & HOST_INT) {
         /* Clear the event status */
-    CT_INTC.SICR_bit.STATUS_CLR_INDEX = FROM_ARM_HOST;
-    while (pru_rpmsg_receive(&transport, &src, &dst, payload, &len) == PRU_RPMSG_SUCCESS) {
+        CT_INTC.SICR_bit.STATUS_CLR_INDEX = FROM_ARM_HOST;
+        while (pru_rpmsg_receive(&transport, &src, &dst, payload, &len) 
+            == PRU_RPMSG_SUCCESS) {
 
-        /*sample= (long) &((*PRU_I2C).I2C_SYSC);*/
-        // Je place de la merde dans ma payload, je pense que je peux aussi faire un memclear
-        memcpy(payload, "\0\0\0\0\0\0\0\0\0\0\0", 11);
-        // je copie la value en int vers ma payload
-        /*ltoa((long)sample, payload);*/
-        //len = strlen(payload) + 1;
-        pru_rpmsg_send(&transport, dst, src, payload, 11);
-  return 1;
+          /*sample=(long)(0x48070010);*/
+          /*sample=(long) pru_i2c_driver_init(1);*/
+          sample= (long) &((*PRU_I2Cmain).I2C_SBLOCK);
+          /*Je place de la merde dans ma payload, je pense que je peux aussi */
+          /*faire un memclear*/
+          memcpy(payload, "\0\0\0\0\0\0\0\0\0\0\0", 11);
+          /*je copie la value en int vers ma payload*/
+          ltoa((long)sample, payload);
+          len = strlen(payload) + 1;
+          pru_rpmsg_send(&transport, dst, src, payload, 11);
     }
       }
     }
+  return 1;
 }
 
 
 void main(void) {
-  // Points to the two GPIO ports that are used
+  // initiation des registre de l'i2c;
+  // /!\ La clock doit etre activee avant avec Devmem2 histoire d'etre sur que 
+  // je n'ai pas encore le bug de ce matin ....
+  pru_i2c_driver_init(1);
   uint32_t *gpio5 = (uint32_t *)GPIO5;
+  gpio5[GPIO_SETDATAOUT]   = USR1;  // Turn the USR1 LED on
 
-  /* Clear SYSCFG[STANDBY_INIT] to enable OCP master port */
-  CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
-  while(1) {
-    if(pru_i2c_driver_init(1)){
-      gpio5[GPIO_SETDATAOUT]   = USR1;  // Turn the USR1 LED on
+  __delay_cycles(2000000000/5);   // Wait 1/2 second
+  gpio5[GPIO_CLEARDATAOUT] = USR1;  // Off
+  __delay_cycles(2000000000/5);   // Wait 1/2 second
 
-      __delay_cycles(1000/5);   // Wait 1/2 second
-
-      gpio5[GPIO_CLEARDATAOUT] = USR1;  // Off
-
-      __delay_cycles(1000/5); 
-    }
-  }
-  /*__halt();*/
+  pru_i2c_test_function(1);
 }
 
 // Turns off triggers

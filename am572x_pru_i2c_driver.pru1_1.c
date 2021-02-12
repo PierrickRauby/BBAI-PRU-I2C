@@ -28,7 +28,7 @@
 #include "am572x_pru_i2c_driver.h"
 
 
-#define CM_L4PER_I2C1_CLKCTRL 0x4A0097A0
+#define CM_L4PER_I2C1_CLKCTRL 0x4A0097A0 //(p1079)
 
 
 volatile pruI2C *PRU_I2C=&CT_I2C1;
@@ -39,21 +39,24 @@ uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
   /* Enable the Gate CM_L4PER_I2C1_CLCKCTRL by writting 0x2 (p1079).*/
   HWREG(CM_L4PER_I2C1_CLKCTRL)=0x2;
 
+  __delay_cycles(100000000/5);   // Wait 1/20 second, not sure if it is useful
  /*Module config (not required) in SYSC*/
   /*PRU_I2C->I2C_SYSC_bit.AUTOIDLE=0x0; // Deactivate auto-idle*/
   /*PRU_I2C->I2C_SYSC_bit.ENAWAKEUP=0x0; // Deactivate Wakeup mechanisme */
   /*PRU_I2C->I2C_SYSC_bit.IDLEMODE=0x01; // Deactivate auto-idle*/
   /*PRU_I2C->I2C_SYSC_bit.CLKACTIVITY=0x00; // Deactivate auto-idle*/
 
+
+
   /* 2. Program the I2Ci.I2C_PSC[7:0], to obtain 12MHz.*/
   /*write 0x9 to setup for fast mode (p5731).*/
-  /*PRU_I2C->I2C_PSC_bit.PSC=0x9;*/
+  PRU_I2C->I2C_PSC_bit.PSC=0x9;
 
   /* 3. Program the I2Ci.I2C_SCLL[7:0]SCLL and I2Ci.I2C_SCLH[7:0]SCLH bit fields
     to obtain a bit rate of 100 kbps or 400 kbps*/
   /* write 0x5 and 0x7 respectiverly (p5731)*/
-  /*PRU_I2C->I2C_SCLL_bit.SCLL=0x5;*/
-  /*PRU_I2C->I2C_SCLH_bit.SCLH=0x7;*/
+  PRU_I2C->I2C_SCLL_bit.SCLL=0x5;
+  PRU_I2C->I2C_SCLH_bit.SCLH=0x7;
  
   /* 4. (Optionnal) for Hight Speed I2C not implemented here*/
  
@@ -83,9 +86,7 @@ uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
   /*PRU_I2C->I2C_CON_bit.MST=0x1; //master*/
   /*PRU_I2C->I2C_CON_bit.TRX=0x1; //transmit*/
 
+/*return &(*PRU_I2C).I2C_SYSC ;*/
 return 1;
-
-
-
 
   }

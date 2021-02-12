@@ -6,7 +6,7 @@
  *    - based on SPRUHZ6L, section 24.1.6 HS I2C Register Manual p5756
  *    - maps the hardware register of the I2C to struct to use on PRU code
  *    - /!\ Contraty to am335x the am57xx is 16 bit registers for the i2c
- //*
+ *
  */
 
 
@@ -124,7 +124,8 @@ typedef struct {
   }; // 0x28-0x29
 
   // 16 bit compensate offset 
-  //uint8_t rsvd2a[2];  //0x2A-0x2B
+  // DONT KNOW WHY
+  uint8_t rsvd2a[2];  //0x2A-0x2B
 
   /* I2C_IRQENABLE_SET register bit field */
   union {
@@ -151,7 +152,7 @@ typedef struct {
   }; // 0x2C-0x2D
 
   // 16 bit compensate offset 
-  //uint8_t rsvd2e[2];  //0x2E-0x2F
+  uint8_t rsvd2e[2];  //0x2E-0x2F
 
   /* SYS_I2C_IRQENABLE_CLR register bit field */
   union {
@@ -178,7 +179,7 @@ typedef struct {
   }; // 0x30-0x31
 
   // 16 bit compensate offset 
-  //uint8_t rsvd32[2];  //0x32-0x33
+  uint8_t rsvd32[2];  //0x32-0x33
 
   /* I2C_WE register bit field */
   union {
@@ -219,7 +220,7 @@ typedef struct {
   }; // 0x38-0x39
 
   // 16 bit compensate offset 
-  //uint8_t rsvd3a[2];  //0x3A-0x3B
+  uint8_t rsvd3a[2];  //0x3A-0x3B
 
 
   /* I2C_DMATXENABLE_SET register bit field */
@@ -233,7 +234,7 @@ typedef struct {
   }; // 0x3C-0x3D
 
   // 16 bit compensate offset 
-  //uint8_t rsvd3e[2];  //0x3E-0x3F
+  uint8_t rsvd3e[2];  //0x3E-0x3F
 
 
   /* I2C_DMARXENABLE_CLR register bit field */
@@ -247,7 +248,7 @@ typedef struct {
   }; // 0x40-0x41
 
   // 16 bit compensate offset 
-  //uint8_t rsvd42[2];  //0x42-0x43
+  uint8_t rsvd42[2];  //0x42-0x43
 
 
   /* I2C_DMATXENABLE_CLR register bit field */
@@ -261,7 +262,7 @@ typedef struct {
   }; // 0x44-0x45
 
   // 16 bit compensate offset 
-  //uint8_t rsvd46[2];  //0x46-0x47
+  uint8_t rsvd46[2];  //0x46-0x47
 
 
   /* I2C_DMARXWAKE_EN register bit field */
@@ -289,7 +290,7 @@ typedef struct {
   }; // 0x48-0x49
 
   // 16 bit compensate offset 
-  //uint8_t rsvd4a[2];  //0x4A-0x4B
+  uint8_t rsvd4a[2];  //0x4A-0x4B
 
 
   /* I2C_DMATXWAKE_EN register bit field */
@@ -332,7 +333,7 @@ typedef struct {
   }; // 0x90-0x91
 
   // 16 bit compensate offset 
-  //uint8_t rsvd92[2];  //0x92-0x93
+  uint8_t rsvd92[2];  //0x92-0x93
 
 
   /* I2C_BUF register bit field */
@@ -350,7 +351,7 @@ typedef struct {
   }; // 0x94-0x95
 
   // 16 bit compensate offset 
-  //uint8_t rsvd96[2];  //0x96-0x97
+  uint8_t rsvd96[2];  //0x96-0x97
 
 
   /* I2C_CNT register bit field */
@@ -363,7 +364,7 @@ typedef struct {
   }; // 0x98-0x99
 
   // 16 bit compensate offset 
-  //uint8_t rsvd9a[2];  //0x9A-0x9B
+  uint8_t rsvd9a[2];  //0x9A-0x9B
 
 
   /* I2C_DATA register bit field */
@@ -406,7 +407,7 @@ typedef struct {
   }; // 0xA4-0xA5
 
   // 16 bit compensate offset 
-  //uint8_t rsvda6[2];  //0xA6-0xA7
+  uint8_t rsvda6[2];  //0xA6-0xA7
 
 
   /* I2C_OA register bit field */
@@ -421,7 +422,7 @@ typedef struct {
   }; // 0xA8-0xA9
 
   // 16 bit compensate offset 
-  //uint8_t rsvdaa[2];  //0xAA-0xAB
+  uint8_t rsvdaa[2];  //0xAA-0xAB
 
 
   /* I2C_SA register bit field */
@@ -434,7 +435,7 @@ typedef struct {
     } I2C_SA_bit;
 };
     // 16 bit compensate offset 
-    //uint8_t rsvdae[2];  //0xAE-0xAF
+    uint8_t rsvdae[2];  //0xAE-0xAF
 
 
     /* I2C_PSC register bit field */
@@ -448,7 +449,7 @@ typedef struct {
     }; // 0xB0-0xB1
 
     // 16 bit compensate offset
-    //uint8_t rsvdb2[2];  //0xB2-0xB3
+    uint8_t rsvdb2[2];  //0xB2-0xB3
 
 
     /* I2C_SCLL register bit field */
@@ -462,7 +463,7 @@ typedef struct {
     }; // 0xB4-0xB5
 
     // 16 bit compensate offset
-    //uint8_t rsvdb6[2];  //0xB6-0xB7
+    uint8_t rsvdb6[2];  //0xB6-0xB7
 
 
     /* I2C_SCLH register bit field */
@@ -502,7 +503,7 @@ typedef struct {
     }; // 0xBC-0xBD
 
     // 16 bit compensate offset
-    //uint8_t rsvdbe[2];  //0xBE-0xBF
+    uint8_t rsvdbe[2];  //0xBE-0xBF
 
     /* I2C_BUFSTAT register bit field */
     union {
@@ -517,7 +518,7 @@ typedef struct {
     }; // 0xC0-0xC1
 
     // 16 bit compensate offset
-    //uint8_t rsvdc2[2];  //0xC2-0xC3
+    uint8_t rsvdc2[2];  //0xC2-0xC3
 
 
     /* I2C_OA1 register bit field */
@@ -531,7 +532,7 @@ typedef struct {
     }; // 0xC4-0xC5
 
     // 16 bit compensate offset
-    //uint8_t rsvdc6[2];  //0xC6-0xC7
+    uint8_t rsvdc6[2];  //0xC6-0xC7
 
 
     /* I2C_OA2 register bit field */
@@ -545,7 +546,7 @@ typedef struct {
     }; // 0xC8-0xC9
 
     // 16 bit compensate offset
-    //uint8_t rsvdca[2];  //0xCA-0xCB
+    uint8_t rsvdca[2];  //0xCA-0xCB
 
 
     /* I2C_OA3 register bit field */
@@ -559,7 +560,7 @@ typedef struct {
     }; // 0xCC-0xCD
 
     // 16 bit compensate offset
-    //uint8_t rsvdce[2];  //0xCE-0xCF
+    uint8_t rsvdce[2];  //0xCE-0xCF
 
 
     /* I2C_ACTOA register bit field */
@@ -577,7 +578,7 @@ typedef struct {
 
 
     // 16 bit compensate offset
-    //uint8_t rsvdd2[2];  //0xD2-0xD3
+    uint8_t rsvdd2[2];  //0xD2-0xD3
 
 
     /* SYS_I2C_SBLOCK register bit field */
