@@ -23,9 +23,7 @@
 #include <string.h>
 #include <pru_intc.h>
 #include <rsc_types.h>
-#include <pru_rpmsg.h>
-#include "resource_table_1.h"
-#include "hw_types.h"
+#include <hw_types.h>
 #include "am572x_pru_i2c.h"
 #include "am572x_pru_i2c_driver.h"
 

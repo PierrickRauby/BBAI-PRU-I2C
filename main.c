@@ -21,7 +21,6 @@
 #include <rsc_types.h>
 #include <pru_rpmsg.h>
 #include "hw_types.h"
-/*located under /var/lib/cloud9/common*/
 #include "am572x_pru_i2c_driver.h"
 
 volatile register unsigned int __R30;

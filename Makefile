@@ -8,12 +8,12 @@ GEN_DIR:=$(abspath $(lastword $(MAKEFILE_LIST)/..))/tmp
 MODEL:=$(shell cat /proc/device-tree/model | sed 's/ /_/g' | tr -d '\000')
 
 TARGET := $(TARGET)
-OBJ := $(TARGET).o
+OBJ := $(TARGET).o  $(GEN_DIR)/am572x_pru_i2c_driver.pru1_1.o
 
 ifeq ($(TARGET),)
 $(warning "Warning no TARGET defined, target set to main")
 TARGET=main
-OBJ := $(TARGET).o
+OBJ := $(TARGET).o $(GEN_DIR)/am572x_pru_i2c_driver.pru1_1.o
 endif
 
 
@@ -31,7 +31,7 @@ LDFLAGS=--reread_libs --warn_sections --stack_size=0x100 --heap_size=0x100 -m $(
 	-i$(PRU_CGT)/lib -i$(PRU_CGT)/include $(COMMON)/$(CHIP)_$(PROC).cmd --library=libc.a \
 	--library=$(PRU_SUPPORT)/lib/rpmsg_lib.lib
 CC=clpru -fe
-CFLAGS=--include_path=$(COMMON) --include_path=$(PRU_SUPPORT)/include \
+CFLAGS= --include_path=./include --include_path=$(COMMON) --include_path=$(PRU_SUPPORT)/include \
 	--include_path=$(PRU_SUPPORT)/include/$(CHIP_REV) \
 	--include_path=$(PRU_STARTERWARE)/include --include_path=$(PRU_STARTERWARE)/include/hw \
 	--include_path=$(PRU_CGT)/include -DCHIP=$(CHIP) -DCHIP_IS_$(CHIP) -DMODEL=$(MODEL) -DPROC=$(PROC) -DPRUN=$(PRUN) \
@@ -60,16 +60,21 @@ compile: $(GEN_DIR)/$(TARGET)$(EXE)
 
 
 $(GEN_DIR)/$(TARGET)$(EXE): $(GEN_DIR)/$(OBJ)
+	@echo "linking....$(GEN_DIR)/$(OBJ)"
 	@$(LD) $@ $^ $(LDFLAGS) 
 
 
+$%.o:%.c
+	@echo "compiled $(GEN_DIR)/%.o"
+	@mkdir -p $(GEN_DIR)
+	@echo 'CC	$^'
+	@$(CC) --output_file=$@ $^ $(CFLAGS)
+
 $(GEN_DIR)/%.o: %.c
+	@echo "compiled $(GEN_DIR)/%.o"
 	@mkdir -p $(GEN_DIR)
 	@echo 'CC	$^'
 	@$(CC) $@ $^ $(CFLAGS)
-
-%.so: %.o
-	@$(LD) $@ -shared $^ $(LDFLAGS) 
 
 
 clean:
