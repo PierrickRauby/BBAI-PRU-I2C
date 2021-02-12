@@ -40,7 +40,10 @@ uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
   HWREG(CM_L4PER_I2C1_CLKCTRL)=0x2;
 
   __delay_cycles(100000000/5);   // Wait 1/20 second, not sure if it is useful
+
  /*Module config (not required) in SYSC*/
+  /*Do Not Uncomment the 4 following lines, I don't even know why I don't delete them*/
+  /*Investigate on the use of the 4 following lines*/
   /*PRU_I2C->I2C_SYSC_bit.AUTOIDLE=0x0; // Deactivate auto-idle*/
   /*PRU_I2C->I2C_SYSC_bit.ENAWAKEUP=0x0; // Deactivate Wakeup mechanisme */
   /*PRU_I2C->I2C_SYSC_bit.IDLEMODE=0x01; // Deactivate auto-idle*/
@@ -63,19 +66,19 @@ uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
   /* 5. Configure the Own Address of the I2C controller by storing it in the 
     I2Ci.I2C_OAregister. */
   /*write 0x0 to OAregister */
-  /*PRU_I2C->I2C_OA_bit.OA=0x0;*/
+  PRU_I2C->I2C_OA_bit.OA=0x0;
  
   /* 6. Set the TX threshold (in transmitter mode) and the RX threshold 
     (in receiver mode) by setting the I2Ci.I2C_BUF[5:0] TXTRSH bit field to 
     (TX threshold – 1) and the I2Ci.I2C_BUF[13:8] RXTRSH bit*/
   /*write 0x501, default value to I2C_BUF, that is 0x1 in TXTRSH and 0x5 in 
     RXTRSH */
-  /*PRU_I2C->I2C_BUF_bit.TXTRSH=0x01;*/
-  /*PRU_I2C->I2C_BUF_bit.RXTRSH=0x05;*/
+  PRU_I2C->I2C_BUF_bit.TXTRSH=0x01;
+  PRU_I2C->I2C_BUF_bit.RXTRSH=0x05;
  
   /* 7. Take the I2C controller out of reset by setting the I2Ci.I2C_CON[15] 
      I2C_EN bit to 1*/
-  /*PRU_I2C->I2C_CON_bit.I2C_EN=0x1;*/
+  PRU_I2C->I2C_CON_bit.I2C_EN=0x1;
 
   /* 24.1.5.1.1.1.2 Initialize the I2C Controller*/
   /*1. Configure the I2Ci.I2C_CON register:*/
@@ -83,8 +86,8 @@ uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
       1: master).*/
   /*For transmitter or receiver mode, set the I2Ci.I2C_CON[9] TRX bit 
       (0: receiver; 1: transmitter).*/
-  /*PRU_I2C->I2C_CON_bit.MST=0x1; //master*/
-  /*PRU_I2C->I2C_CON_bit.TRX=0x1; //transmit*/
+  PRU_I2C->I2C_CON_bit.MST=0x1; //master
+  PRU_I2C->I2C_CON_bit.TRX=0x1; //transmit
 
 /*return &(*PRU_I2C).I2C_SYSC ;*/
 return 1;
