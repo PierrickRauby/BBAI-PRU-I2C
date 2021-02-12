@@ -17,23 +17,23 @@
 
 
 #include <stdint.h>
+#include <pru_cfg.h>
 #include <stdio.h>
 #include <stdlib.h>            // atoi
 #include <string.h>
-#include <pru_cfg.h>
 #include <pru_intc.h>
 #include <rsc_types.h>
 #include <pru_rpmsg.h>
-/*#include "resource_table_1.h"*/
-/*#include "init_pins_empty.h"*/
+#include "resource_table_1.h"
 #include "hw_types.h"
-/*#include "include/am572x_pru_i2c.h"*/
-#include "include/am572x_pru_i2c_driver.h"
+#include "am572x_pru_i2c.h"
+#include "am572x_pru_i2c_driver.h"
 
 
 #define CM_L4PER_I2C1_CLKCTRL 0x4A0097A0
 
-/*volatile pruI2C* PRU_I2C;*/
+
+volatile pruI2C *PRU_I2C=&CT_I2C1;
 uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
 
   /* 24.1.5.1.1.1.1 Configure the Module Before Enabling the I2C Controller*/
