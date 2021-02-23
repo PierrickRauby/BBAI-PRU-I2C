@@ -77,8 +77,18 @@ uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
 /* Helper function for polling*/
 uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_BB(uint8_t i2cDevice){
   uint32_t ticks = 0;
-  while (PRU_I2C->I2C_IRQSTATUS_RAW_bit.BB)
-  {
+  while (PRU_I2C->I2C_IRQSTATUS_RAW_bit.BB){
+    ticks++;
+    if (ticks > MAX_CYCLES_WAITING)
+    {
+      return 0; //Bus is free
+    }
+  }
+  return 1; //Bus is ready
+}
+uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(uint8_t i2cDevice){
+  uint32_t ticks = 0;
+  while (!PRU_I2C->I2C_IRQSTATUS_RAW_bit.XRDY){
     ticks++;
     if (ticks > MAX_CYCLES_WAITING)
     {
@@ -87,10 +97,9 @@ uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_BB(uint8_t i2cDevice){
   }
   return 1;
 }
-uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(uint8_t i2cDevice){
+uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_RRDY(uint8_t i2cDevice){
   uint32_t ticks = 0;
-  while (!PRU_I2C->I2C_IRQSTATUS_RAW_bit.XRDY)
-  {
+  while (!PRU_I2C->I2C_IRQSTATUS_RAW_bit.RRDY){
     ticks++;
     if (ticks > MAX_CYCLES_WAITING)
     {
@@ -98,6 +107,50 @@ uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(uint8_t i2cDevice){
     }
   }
   return 1;
+}
+uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(uint8_t i2cDevice){
+  uint32_t ticks = 0;
+  while (!PRU_I2C->I2C_IRQSTATUS_RAW_bit.ARDY){
+    ticks++;
+    if (ticks > MAX_CYCLES_WAITING)
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(uint8_t i2cDevice){
+  uint32_t ticks = 0;
+  while (!PRU_I2C->I2C_IRQSTATUS_RAW_bit.NACK){
+    ticks++;
+    if (ticks > MAX_CYCLES_WAITING)
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(uint8_t i2cDevice){
+  uint32_t ticks = 0;
+  while (!PRU_I2C->I2C_IRQSTATUS_RAW_bit.AL){
+    ticks++;
+    if (ticks > MAX_CYCLES_WAITING)
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_BF(uint8_t i2cDevice){
+  uint32_t ticks = 0;
+  while (PRU_I2C->I2C_IRQSTATUS_RAW_bit.BF){
+    ticks++;
+    if (ticks > MAX_CYCLES_WAITING)
+    {
+      return 0; //Bus is free
+    }
+  }
+  return 1; //Bus is ready
 }
 
 /*Read, write function*/
@@ -136,11 +189,12 @@ uint8_t pru_i2c_driver_read_byte(uint8_t address, uint8_t reg, uint8_t bytes,
      bits. To initiate a transfer, the I2Ci.I2C_CON[0] STT bit must be set to 1,
      and it is not mandatory to set the I2Ci.I2C_CON[1] STP bit to 1.
   */
-  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_BB()){
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_BB(1)){
+    /* Id BB=1 the bus is occupied*/
     return 0;
   }
   PRU_I2C->I2C_CON_bit.STT=0x1;
-  PRU_I2C->I2C_CON_bit.STP=0x1;
+  /*PRU_I2C->I2C_CON_bit.STP=0x1;*/ //(don't want to send stop condition now
 /*24.1.5.1.1.1.6 Transmit Data
   Poll the I2Ci.I2C_IRQSTATUS_RAW [4] XRDY bit, or use the XRDY interrupt 
   (the I2Ci.I2C_IRQENABLE_SET [4] XRDY_IE bit must be set to 1) or the DMA TX
@@ -150,17 +204,51 @@ uint8_t pru_i2c_driver_read_byte(uint8_t address, uint8_t reg, uint8_t bytes,
   I2Ci.I2C_BUF[5:0] TXTRSH bit field + 1), use the draining feature 
   (enable the XDR interrupt by setting the I2Ci.I2C_IRQENABLE_SET [14] 
   XDR_IE bit to 1).*/
-  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY()){
-    return 0;
+  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(1)){return 0;}
+  /*write register to read*/
+  PRU_I2C->I2C_DATA_bit.DATA=reg;
+  /* initiate transfer*/
+  PRU_I2C->I2C_IRQSTATUS_RAW_bit.XRDY=0x1;
+  /* check the interupt as in Fig20-24 (p5744)*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return 0;}
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return 0;}
+
+  /* Check that the registers can be accessed again*/
+  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return 0;}
+
+  /* wait for the data */ 
+  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_RRDY(1)){return 0;}
+
+  uint8_t count;
+  for(count=0;count<bytes;count++){
+    /* Get the data*/
+    buffer[count]=PRU_I2C->I2C_DATA;
+    /*Clear RRDY to tell that new data is ready to be read*/
+    PRU_I2C->I2C_IRQSTATUS_RAW_bit.RRDY=0x1;
+    /* Back to the top of diagram in Fig20-24 (p5744)*/
+
+  /* check the interupt as in figure20-24 (p5744)*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return 0;}
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return 0;}
+
+  /* Check that the registers can be accessed again*/
+  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return 0;}
+    /*Wait for the next data*/
+    if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_RRDY(1)){return 0;}
+
+
   }
 
+  /* check the interupt as in figure20-24 (p5744)*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return 0;}
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return 0;}
+
+  /* Check that the registers can be accessed again*/
+  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return 0;}
+    /*Wait for the next data*/
+    if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_BF(1)){return 0;}
 
 
-
-
-
-
-
-  return 1
+  return count;
 }
 
