@@ -89,10 +89,18 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
         while (pru_rpmsg_receive(&transport, &src, &dst, payload, &len) 
             == PRU_RPMSG_SUCCESS) {
 
-          /*sample=(long)(0x48070010);*/
+          uint8_t address=0x1d;
+          uint8_t reg=0x0d;
+          uint8_t result[16];
+          uint8_t bytes=2;
+          long count;
+          pru_i2c_driver_init_from_graph(1,1,address);
+          count=pru_i2c_driver_transmit_byte_from_graph(address,reg,bytes,result);
+          sample=(long)count;
+          /*sample=(long)*(0x4807A024);*/
+          /*sample=HWREG(0x4807A024);*/
           /*sample=(long) pru_i2c_driver_init(1);*/
-          sample= (long) &((*PRU_I2Cmain).I2C_SBLOCK);
-          /*Je place de la merde dans ma payload, je pense que je peux aussi */
+          /*sample= (long) &((*PRU_I2Cmain).I2C_SBLOCK); [>Je place de la merde dans ma payload, je pense que je peux aussi <]*/
           /*faire un memclear*/
           memcpy(payload, "\0\0\0\0\0\0\0\0\0\0\0", 11);
           /*je copie la value en int vers ma payload*/
@@ -102,15 +110,18 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
     }
       }
     }
-  return 1;
 }
-
-
 void main(void) {
-  // initiation des registre de l'i2c;
-  // /!\ La clock doit etre activee avant avec Devmem2 histoire d'etre sur que 
-  // je n'ai pas encore le bug de ce matin ....
-  pru_i2c_driver_init(1);
+  /*I2C1 initialization from PRU1_1*/
+  /* Read register of ADC via I2C*/
+  /*pru_i2c_driver_read_byte(uint8_t address, uint8_t reg, uint8_t bytes,
+    uint8_t *buffer)*/
+  /*uint8_t address=0x1d;*/
+  /*uint8_t reg=0x0d;*/
+  /*uint8_t *buffer;*/
+  /*uint8_t bytes=1;*/
+/**/
+  /*pru_i2c_driver_read_byte(address,reg,bytes,&buffer);*/
   uint32_t *gpio5 = (uint32_t *)GPIO5;
   gpio5[GPIO_SETDATAOUT]   = USR1;  // Turn the USR1 LED on
 

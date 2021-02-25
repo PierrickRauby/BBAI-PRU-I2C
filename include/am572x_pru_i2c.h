@@ -372,8 +372,8 @@ typedef struct {
     volatile uint16_t I2C_DATA;
 
     volatile struct {
-      uint32_t DATA : 8; // 7:0
-      uint32_t RSVD8 : 8; // 15:8
+      uint16_t DATA : 8; // 7:0
+      uint16_t RSVD8 : 8; // 15:8
     } I2C_DATA_bit;
   }; // 0x9C-0x9D
 
@@ -381,7 +381,7 @@ typedef struct {
   //uint8_t rsvd9e[2];  //0x9E-0x9F
 
 
-  uint8_t rsvda0[4];  //0xA0-0xA3
+  uint8_t rsvda0[6];  //0xA0-0xA3
 
 
   /* I2C_CON register bit field */
