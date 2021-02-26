@@ -27,23 +27,22 @@
 
 
 /*#define CM_L4PER_I2C1_CLKCTRL 0x4A0097A0 //(p1079)*/
-/* WARNING: the next adress for I2C1 is not correct and actually point to i2c4 */
+/* WARNING: the next adress for I2C1 is not correct and actually point to i2c4*/
 #define CM_L4PER_I2C1_CLKCTRL 0x4A0097B8 //(p1079)
 #define MAX_CYCLES_WAITING    200000 // max cycle of pru clock to wait
-#define DEBUG_REG             0x4807A024 // IRQSTATUS_RAW Adress to read a return if fail
+#define DEBUG_REG             0x4807A024 // IRQSTATUS_RAWkkk
 
 volatile pruI2C *PRU_I2C=&CT_I2C1;
 uint8_t pru_i2c_initialized=0;
 uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
-  /* Function that initiate the i2c bus*/
+  /* Function that initiate the i2c bus it is base on 
+     section 24.1.5.1.1.1.1 */
   /* 24.1.5.1.1.1.1 Configure the Module Before Enabling the I2C Controller*/
   /* 1. Enable the functional and interface clocks (p5740).*/
   /* Enable the Gate CM_L4PER_I2C1_CLCKCTRL by writting 0x2 (p1079).*/
   HWREG(CM_L4PER_I2C1_CLKCTRL)=0x2;
   __delay_cycles(100000000/5);   // Wait 1/20 second, not sure if it is useful
   /*Module config (not required) in SYSC*/
-  /*Do Not Uncomment the 4 following lines, I don't even know why I don't delete them*/
-  /*Investigate on the use of the 4 following lines*/
   /* 2. Program the I2Ci.I2C_PSC[7:0], to obtain 12MHz.*/
   /*write 0x9 to setup for fast mode (p5731).*/
   PRU_I2C->I2C_PSC_bit.PSC=0x9;
@@ -67,6 +66,7 @@ uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
   /* 7. Take the I2C controller out of reset by setting the I2Ci.I2C_CON[15] 
      I2C_EN bit to 1*/
   PRU_I2C->I2C_CON_bit.I2C_EN=0x1;
+  PRU_I2C->I2C_IRQENABLE_SET=0x1F;
   return 1;
 }
 
@@ -189,7 +189,8 @@ long pru_i2c_driver_read_byte(uint8_t address, uint8_t reg, uint8_t bytes,
   /*24.1.5.1.1.1.3 Configure Slave Address and the Data Control Register 
     In master mode, configure the slave address register by programming the 
     I2Ci.I2C_SA[9:0] SA bit field and the number of data bytes 
-    (I2C data payload) associated with the transfer by programming the I2Ci.I2C_CNT[15:0] DCOUNT bit field.
+    (I2C data payload) associated with the transfer by programming the 
+    I2Ci.I2C_CNT[15:0] DCOUNT bit field.
     */
   PRU_I2C->I2C_SA_bit.SA=address; // addess argument
   PRU_I2C->I2C_CNT_bit.DCOUNT=1; // 1 byte to transmit
@@ -227,7 +228,7 @@ long pru_i2c_driver_read_byte(uint8_t address, uint8_t reg, uint8_t bytes,
   /*Check if data as already been access, if not I can processed*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}
   /* wait for the data */
-  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_RRDY(1)){return 7;return HWREG(DEBUG_REG);}
+  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_RRDY(1)){return HWREG(DEBUG_REG);}
   uint8_t count;
   for(count=0;count<bytes;count++){
     /* Get the data*/
@@ -236,23 +237,22 @@ long pru_i2c_driver_read_byte(uint8_t address, uint8_t reg, uint8_t bytes,
     PRU_I2C->I2C_IRQSTATUS_RAW_bit.RRDY=0x1;
     /* Back to the top of diagram in Fig20-24 (p5744)*/
     /* check the interupt as in figure20-24 (p5744)*/
-    if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return 8;return HWREG(DEBUG_REG);}
-    if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return 9;return HWREG(DEBUG_REG);}
+    if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return HWREG(DEBUG_REG);}
+    if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return HWREG(DEBUG_REG);}
     /* Check that the registers can be accessed again*/
-    if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return 10;return HWREG(DEBUG_REG);}
+    if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}
     /*Wait for the next data*/
-    if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_RRDY(1)){return 11;return HWREG(DEBUG_REG);}
+    if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_RRDY(1)){return HWREG(DEBUG_REG);}
   }
   /* check the interupt as in figure20-24 (p5744)*/
-  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return 12;return HWREG(DEBUG_REG);}
-  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return 13;return HWREG(DEBUG_REG);}
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return HWREG(DEBUG_REG);}
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return HWREG(DEBUG_REG);}
   /* Check that the registers can be accessed again*/
-  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return 14;return HWREG(DEBUG_REG);}
+  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}
   /*Wait for the next data*/
-  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_BF(1)){return 15;return HWREG(DEBUG_REG);}
+  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_BF(1)){return HWREG(DEBUG_REG);}
   return count;
 }
-
 
 /* The following function use the section 24.1.5.1.1.3 (p5742) of the TRM
    the diagramme used are Figure 24-19 to Figure 24-21*/
@@ -283,19 +283,19 @@ uint8_t pru_i2c_driver_init_from_graph(uint8_t i2cDevice, uint8_t dcount,
   PRU_I2C->I2C_CNT_bit.DCOUNT=dcount;
   /*Write I2Ci.I2C_IRQENABLE_SET register (enable interrupt)*/
   /*set bit 4,3,2,1 and 0 (p5766)*/
-  PRU_I2C->I2C_IRQENABLE_SET=0x1f;
+  PRU_I2C->I2C_IRQENABLE_SET=0x1F;
   /*Write I2Ci.I2C_BUF register (for DMA use)*/
   /* Nothing done here I am not using DMA*/
   return 1;
 }
 
-
-long pru_i2c_driver_transmit_byte_from_graph(uint8_t address, uint8_t reg, uint8_t bytes,
-    uint8_t *buffer){
+long pru_i2c_driver_transmit_byte_from_graph(uint8_t address, uint8_t reg,
+    uint8_t bytes,uint8_t *buffer){
   /* this function setups the I2C based on diagram 24-20 (p5743)*/
   if(!pru_i2c_initialized){
      /*If bus is not initialized then try to initialized it*/
-    if(!pru_i2c_driver_init(1)){
+    if(!pru_i2c_driver_init_from_graph(1,1,address)){
+    /*if(!pru_i2c_driver_init(1)){*/
       return HWREG(DEBUG_REG);
     }
   }
@@ -309,14 +309,13 @@ long pru_i2c_driver_transmit_byte_from_graph(uint8_t address, uint8_t reg, uint8
   PRU_I2C->I2C_CON_bit.MST=0x1; //master
   PRU_I2C->I2C_CON_bit.TRX=0x1; //transmit
   PRU_I2C->I2C_CON_bit.STT=0x1; //STT
-  return 3;
-  return HWREG(DEBUG_REG);
+  /*PRU_I2C->I2C_CON_bit.STP=0x1; //STP*/
   /*Is ACK returned (NACK=0)? (continue if no)*/
-  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return 2; return HWREG(DEBUG_REG);}
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return HWREG(DEBUG_REG);}
   /*Is arbitration lost (AL=1)?(continue if no)*/
-  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return 3; return HWREG(DEBUG_REG);}
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return HWREG(DEBUG_REG);}
   /*Can update the registers (ARDY=1)?(continue if no)*/
-  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return 4; return HWREG(DEBUG_REG);}
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}
   /*Is send data required to end transfer (XDR=1)?(continue if no)*/
   /*Current implementation assumes that we do not need the draining feature*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XDR(1)){
@@ -325,14 +324,15 @@ long pru_i2c_driver_transmit_byte_from_graph(uint8_t address, uint8_t reg, uint8
     uint8_t TXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.TXSTAT;
     /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUFSTAT[5:0] TXSTAT times*/
     uint8_t i;
+    uint8_t test;
+    test=PRU_I2C->I2C_DATA_bit.DATA;
+    return test;
     for(i=0;i<1;i++){
       /*TODO: check that I am writin what I want here*/
       PRU_I2C->I2C_DATA_bit.DATA=reg;
     }
-    return HWREG(DEBUG_REG);
     /*Clear XDR bit (see Note 1)*/
     PRU_I2C->I2C_IRQSTATUS_bit.XDR=1;
-    return HWREG(DEBUG_REG);
   }
   /*Is send data being requested (XRDY bit=1)?*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(1)){
@@ -341,12 +341,12 @@ long pru_i2c_driver_transmit_byte_from_graph(uint8_t address, uint8_t reg, uint8
     uint8_t TXTRSH_value=PRU_I2C->I2C_BUF_bit.TXTRSH;
     uint8_t i;
     TXTRSH_value+=1;
+    /*return reg;*/
     for(i=0;i<TXTRSH_value;i++){
       PRU_I2C->I2C_DATA_bit.DATA=reg;
     }
     /*Clear XRDY bit (see Note 1*/
     PRU_I2C->I2C_IRQSTATUS_bit.XRDY=1;
-    return 7;
   }
-  return 42;
+  return 1;
 }

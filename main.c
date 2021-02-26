@@ -90,12 +90,13 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
             == PRU_RPMSG_SUCCESS) {
 
           uint8_t address=0x1d;
-          uint8_t reg=0x0d;
+          uint8_t reg=0x02;
           uint8_t result[16];
           uint8_t bytes=2;
           long count;
           /*pru_i2c_driver_init_from_graph(1,1,address);*/
-          pru_i2c_driver_init(1);
+          count=pru_i2c_driver_init_from_graph(1,1,address);
+          /*pru_i2c_driver_init(1);*/
           count=pru_i2c_driver_transmit_byte_from_graph(address,reg,bytes,result);
           sample=(long)count;
           /*sample=(long)*(0x4807A024);*/
