@@ -94,7 +94,8 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
           uint8_t result[16];
           uint8_t bytes=2;
           long count;
-          pru_i2c_driver_init_from_graph(1,1,address);
+          /*pru_i2c_driver_init_from_graph(1,1,address);*/
+          pru_i2c_driver_init(1);
           count=pru_i2c_driver_transmit_byte_from_graph(address,reg,bytes,result);
           sample=(long)count;
           /*sample=(long)*(0x4807A024);*/
@@ -112,24 +113,14 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
     }
 }
 void main(void) {
-  /*I2C1 initialization from PRU1_1*/
-  /* Read register of ADC via I2C*/
-  /*pru_i2c_driver_read_byte(uint8_t address, uint8_t reg, uint8_t bytes,
-    uint8_t *buffer)*/
-  /*uint8_t address=0x1d;*/
-  /*uint8_t reg=0x0d;*/
-  /*uint8_t *buffer;*/
-  /*uint8_t bytes=1;*/
-/**/
-  /*pru_i2c_driver_read_byte(address,reg,bytes,&buffer);*/
-  uint32_t *gpio5 = (uint32_t *)GPIO5;
-  gpio5[GPIO_SETDATAOUT]   = USR1;  // Turn the USR1 LED on
-
-  __delay_cycles(2000000000/5);   // Wait 1/2 second
-  gpio5[GPIO_CLEARDATAOUT] = USR1;  // Off
-  __delay_cycles(2000000000/5);   // Wait 1/2 second
-
   pru_i2c_test_function(1);
+  /*uint32_t *gpio5 = (uint32_t *)GPIO5;*/
+  /*gpio5[GPIO_SETDATAOUT]   = USR1;  // Turn the USR1 LED on*/
+/**/
+  /*__delay_cycles(2000000000/5);   // Wait 1/2 second*/
+  /*gpio5[GPIO_CLEARDATAOUT] = USR1;  // Off*/
+  /*__delay_cycles(2000000000/5);   // Wait 1/2 second*/
+
 }
 
 // Turns off triggers
