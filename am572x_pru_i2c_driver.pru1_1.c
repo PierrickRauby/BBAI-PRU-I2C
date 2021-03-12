@@ -66,7 +66,8 @@ uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
   /* 7. Take the I2C controller out of reset by setting the I2Ci.I2C_CON[15] 
      I2C_EN bit to 1*/
   PRU_I2C->I2C_CON_bit.I2C_EN=0x1;
-  PRU_I2C->I2C_IRQENABLE_SET=0x1F;
+  /* No need to set I2C_IRQENABLE_SET bc I am using pooling*/
+  /*PRU_I2C->I2C_IRQENABLE_SET=0x1F;*/
   return 1;
 }
 
@@ -283,7 +284,8 @@ uint8_t pru_i2c_driver_init_from_graph(uint8_t i2cDevice, uint8_t dcount,
   PRU_I2C->I2C_CNT_bit.DCOUNT=dcount;
   /*Write I2Ci.I2C_IRQENABLE_SET register (enable interrupt)*/
   /*set bit 4,3,2,1 and 0 (p5766)*/
-  PRU_I2C->I2C_IRQENABLE_SET=0x1F;
+  /* No need to set I2C_IRQENABLE_SET bc I am using pooling*/
+  /*PRU_I2C->I2C_IRQENABLE_SET=0x1F;*/
   /*Write I2Ci.I2C_BUF register (for DMA use)*/
   /* Nothing done here I am not using DMA*/
   return 1;
