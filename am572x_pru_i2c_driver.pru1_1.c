@@ -174,14 +174,10 @@ uint8_t pru_i2c_driver_init(uint8_t i2cDevice, uint8_t dcount,
 
 long pru_i2c_driver_transmit_byte(uint8_t address, uint8_t reg,
     uint8_t bytes,uint8_t *buffer){
-  /* TODO: This function is not complete and need to be finished so far I only
-     send the slave add and the register value, I need to write the byte in the 
-     bus too
-     */
   /* this function setups the I2C based on diagram 24-20 (p5743)*/
   if(!pru_i2c_initialized){
      /*If bus is not initialized then try to initialized it*/
-    if(!pru_i2c_driver_init(1,1,address)){
+    if(!pru_i2c_driver_init(1,2,address)){
     /*if(!pru_i2c_driver_init(1)){*/
       return HWREG(DEBUG_REG);
     }
@@ -228,15 +224,60 @@ long pru_i2c_driver_transmit_byte(uint8_t address, uint8_t reg,
     TXTRSH_value+=1;
     /*return reg;*/
     for(i=0;i<TXTRSH_value;i++){
+      if(i==0){ // the register
       PRU_I2C->I2C_DATA_bit.DATA=reg;
+      }else{ // the data
+      PRU_I2C->I2C_DATA_bit.DATA=0x40;
+      }
+    }
+    /*Clear XRDY bit (see Note 1*/
+    PRU_I2C->I2C_IRQSTATUS_bit.XRDY=1;
+  }
+return 1;
+
+  // Sending the data now that I have let the device now
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return HWREG(DEBUG_REG);}
+  /*Is arbitration lost (AL=1)?(continue if no)*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return HWREG(DEBUG_REG);}
+  /*Can update the registers (ARDY=1)?(continue if no)*/
+  /*Same as for the receive function I do think I need to check ARDY now*/
+  /*if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}*/
+  /*Is send data required to end transfer (XDR=1)?(continue if no)*/
+  /*Current implementation assumes that we do not need the draining feature*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XDR(1)){
+    /*Read I2Ci.I2C_BUFSTAT[5:0] TXSTAT to check the amount of data to be 
+      transmitted*/
+    uint8_t TXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.TXSTAT;
+    /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUFSTAT[5:0] TXSTAT times*/
+    uint8_t i;
+    for(i=0;i<1;i++){
+      /*TODO: check that I am writin what I want here*/
+      /*PRU_I2C->I2C_DATA_bit.DATA=buffer[0];*/
+      PRU_I2C->I2C_DATA_bit.DATA=0x40;
+    }
+    /*Clear XDR bit (see Note 1)*/
+    PRU_I2C->I2C_IRQSTATUS_bit.XDR=1;
+  return 42;
+  }
+  /*Is send data being requested (XRDY bit=1)?*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(1)){
+    /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUF[5:0] XTRSH + 1 times */
+    /* /!\ ERROR IN DOC I2C_BUF[5:0] is TXTRSH not XTRSH*/
+    uint8_t TXTRSH_value=PRU_I2C->I2C_BUF_bit.TXTRSH;
+    uint8_t i;
+    TXTRSH_value+=1;
+    /*return reg;*/
+    for(i=0;i<TXTRSH_value;i++){
+      /*PRU_I2C->I2C_DATA_bit.DATA=buffer[0];*/
+      PRU_I2C->I2C_DATA_bit.DATA=0x40;
     }
     /*Clear XRDY bit (see Note 1*/
     PRU_I2C->I2C_IRQSTATUS_bit.XRDY=1;
     /*return PRU_I2C->I2C_IRQSTATUS_bit=1;*/
+    return 43;
   }
-
-
-  return 1;
+    return 44;
+  return HWREG(DEBUG_REG);
 }
 
 
