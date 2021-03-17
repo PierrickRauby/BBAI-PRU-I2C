@@ -94,20 +94,16 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
           uint8_t reg=0x11;
           uint8_t result[16];
           uint8_t data_transmit[1];
-          data_transmit[0]=0x1;
+          data_transmit[0]=0x80;
           uint8_t bytes=2;
           long count;
           /* 1st do a reset of the I2C bus*/
           count=pru_i2c_driver_software_reset(1);
-          /*pru_i2c_driver_init_from_graph(1,1,address);*/
           count=pru_i2c_driver_init(1,2,address);
-          /*pru_i2c_driver_init(1);*/
           count=pru_i2c_driver_transmit_byte(address,reg,bytes,data_transmit);
-          /*count=pru_i2c_driver_receive_byte(address,reg,bytes,result);*/
+          /*count=pru_i2c_driver_init(1,1,address);*/
+          count=pru_i2c_driver_receive_byte(address,reg,bytes,result);
           sample=(long)count;
-          /*sample=(long)*(0x4807A024);*/
-          /*sample=HWREG(0x4807A024);*/
-          /*sample= (long) &((*PRU_I2Cmain).I2C_SBLOCK); */
           memcpy(payload, "\0\0\0\0\0\0\0\0\0\0\0", 11);
           ltoa((long)sample, payload);
           len = strlen(payload) + 1;

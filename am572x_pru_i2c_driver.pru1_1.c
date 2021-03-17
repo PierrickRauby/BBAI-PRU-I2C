@@ -185,7 +185,6 @@ long pru_i2c_driver_transmit_byte(uint8_t address, uint8_t reg,
   /*[EXPECTED I2C_IRQENABLE_&((*PRU_I2Cmain).I2C_SBLOCK)CLR = FFFFh]*/
   (*PRU_I2C).I2C_IRQENABLE_CLR=0xFFFF;
   /*I2Ci.I2C_IRQSTATUS_RAW[12] BB bit = 0?*/
-  __delay_cycles(20000);
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_BB(1)){return HWREG(DEBUG_REG);}
   /*2Ci.I2C_CON with 8603h or 8601h (F/S mode) */
   /* write 8601h (no STP condition)*/
@@ -193,13 +192,13 @@ long pru_i2c_driver_transmit_byte(uint8_t address, uint8_t reg,
   PRU_I2C->I2C_CON_bit.MST=0x1; //master
   PRU_I2C->I2C_CON_bit.TRX=0x1; //transmit
   PRU_I2C->I2C_CON_bit.STT=0x1; //STT
-  /*PRU_I2C->I2C_CON_bit.STP=0x1; //STP*/
+  PRU_I2C->I2C_CON_bit.STP=0x1; //STP
   /*Is ACK returned (NACK=0)? (continue if no)*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return HWREG(DEBUG_REG);}
   /*Is arbitration lost (AL=1)?(continue if no)*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return HWREG(DEBUG_REG);}
   /*Can update the registers (ARDY=1)?(continue if no)*/
-  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}
+  /*if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}*/
   /*Is send data required to end transfer (XDR=1)?(continue if no)*/
   /*Current implementation assumes that we do not need the draining feature*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XDR(1)){
@@ -214,6 +213,10 @@ long pru_i2c_driver_transmit_byte(uint8_t address, uint8_t reg,
     }
     /*Clear XDR bit (see Note 1)*/
     PRU_I2C->I2C_IRQSTATUS_bit.XDR=1;
+
+    /*uint8_t ret_value=PRU_I2C->I2C_CNT_bit.DCOUNT;*/
+    uint8_t ret_value=58;
+    return ret_value;
   }
   /*Is send data being requested (XRDY bit=1)?*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(1)){
@@ -224,16 +227,11 @@ long pru_i2c_driver_transmit_byte(uint8_t address, uint8_t reg,
     TXTRSH_value+=1;
     /*return reg;*/
     for(i=0;i<TXTRSH_value;i++){
-      if(i==0){ // the register
       PRU_I2C->I2C_DATA_bit.DATA=reg;
-      }else{ // the data
-      PRU_I2C->I2C_DATA_bit.DATA=0x40;
-      }
     }
     /*Clear XRDY bit (see Note 1*/
     PRU_I2C->I2C_IRQSTATUS_bit.XRDY=1;
   }
-return 1;
 
   // Sending the data now that I have let the device now
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return HWREG(DEBUG_REG);}
@@ -252,12 +250,10 @@ return 1;
     uint8_t i;
     for(i=0;i<1;i++){
       /*TODO: check that I am writin what I want here*/
-      /*PRU_I2C->I2C_DATA_bit.DATA=buffer[0];*/
-      PRU_I2C->I2C_DATA_bit.DATA=0x40;
+      PRU_I2C->I2C_DATA_bit.DATA=buffer[0];
     }
     /*Clear XDR bit (see Note 1)*/
     PRU_I2C->I2C_IRQSTATUS_bit.XDR=1;
-  return 42;
   }
   /*Is send data being requested (XRDY bit=1)?*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(1)){
@@ -268,16 +264,12 @@ return 1;
     TXTRSH_value+=1;
     /*return reg;*/
     for(i=0;i<TXTRSH_value;i++){
-      /*PRU_I2C->I2C_DATA_bit.DATA=buffer[0];*/
-      PRU_I2C->I2C_DATA_bit.DATA=0x40;
+      PRU_I2C->I2C_DATA_bit.DATA=buffer[0];
     }
     /*Clear XRDY bit (see Note 1*/
     PRU_I2C->I2C_IRQSTATUS_bit.XRDY=1;
-    /*return PRU_I2C->I2C_IRQSTATUS_bit=1;*/
-    return 43;
   }
-    return 44;
-  return HWREG(DEBUG_REG);
+    return 1;
 }
 
 
@@ -303,13 +295,13 @@ long pru_i2c_driver_receive_byte(uint8_t address, uint8_t reg,
   PRU_I2C->I2C_CON_bit.MST=0x1; //master
   PRU_I2C->I2C_CON_bit.TRX=0x1; //receive
   PRU_I2C->I2C_CON_bit.STT=0x1; //STT
-  /*PRU_I2C->I2C_CON_bit.STP=0x1; //STP*/
   /*Is ACK returned (NACK=0)? (continue if no)*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return HWREG(DEBUG_REG);}
   /*Is arbitration lost (AL=1)?(continue if no)*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return HWREG(DEBUG_REG);}
   /*Can update the registers (ARDY=1)?(continue if no)*/
-  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}
+  /*if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}*/
+  /*if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return 314;}*/
   /*Is send data required to end transfer (XDR=1)?(continue if no)*/
   /*Current implementation assumes that we do not need the draining feature*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XDR(1)){
