@@ -30,7 +30,7 @@
 /* WARNING: the next adress for I2C1 is not correct and actually point to i2c4*/
 #define CM_L4PER_I2C1_CLKCTRL 0x4A0097B8 //(p1079)
 #define MAX_CYCLES_WAITING    200000 // max cycle of pru clock to wait
-#define DEBUG_REG             0x4807A024 // IRQSTATUS_RAWkkk
+#define DEBUG_REG             0x4807A024 // IRQSTATUS_RAW
 
 volatile pruI2C *PRU_I2C=&CT_I2C1;
 uint8_t pru_i2c_initialized=0;
@@ -76,9 +76,20 @@ uint8_t pru_i2c_driver_init( uint8_t i2cDevice){
    at PRU clock of 200MHz*/
 
 uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_XDR(uint8_t i2cDevice){
-  /* Test if Bus is free return 0 if yes */
+  /* Test if transmist draining IRQ enable, return 1 if yes */
   uint32_t ticks = 0;
   while (PRU_I2C->I2C_IRQSTATUS_RAW_bit.XDR){
+    ticks++;
+    if (ticks > MAX_CYCLES_WAITING){
+      return 1; /*Bus is occupied*/
+    }
+  }
+  return 0; /*Bus is free*/
+}
+uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_RDR(uint8_t i2cDevice){
+  /* Test if receive  draining IRQ enable, return 1 if yes */
+  uint32_t ticks = 0;
+  while (PRU_I2C->I2C_IRQSTATUS_RAW_bit.RDR){
     ticks++;
     if (ticks > MAX_CYCLES_WAITING){
       return 1; /*Bus is occupied*/
@@ -285,7 +296,6 @@ uint8_t pru_i2c_driver_init_from_graph(uint8_t i2cDevice, uint8_t dcount,
   /*Write I2Ci.I2C_IRQENABLE_SET register (enable interrupt)*/
   /*set bit 4,3,2,1 and 0 (p5766)*/
   /* No need to set I2C_IRQENABLE_SET bc I am using pooling*/
-  /*PRU_I2C->I2C_IRQENABLE_SET=0x1F;*/
   /*Write I2Ci.I2C_BUF register (for DMA use)*/
   /* Nothing done here I am not using DMA*/
   return 1;
@@ -293,6 +303,10 @@ uint8_t pru_i2c_driver_init_from_graph(uint8_t i2cDevice, uint8_t dcount,
 
 long pru_i2c_driver_transmit_byte_from_graph(uint8_t address, uint8_t reg,
     uint8_t bytes,uint8_t *buffer){
+  /* TODO: This function is not complete and need to be finished so far I only
+     send the slave add and the register value, I need to write the byte in the 
+     bus too
+     */
   /* this function setups the I2C based on diagram 24-20 (p5743)*/
   if(!pru_i2c_initialized){
      /*If bus is not initialized then try to initialized it*/
@@ -304,6 +318,7 @@ long pru_i2c_driver_transmit_byte_from_graph(uint8_t address, uint8_t reg,
   /*[EXPECTED I2C_IRQENABLE_&((*PRU_I2Cmain).I2C_SBLOCK)CLR = FFFFh]*/
   (*PRU_I2C).I2C_IRQENABLE_CLR=0xFFFF;
   /*I2Ci.I2C_IRQSTATUS_RAW[12] BB bit = 0?*/
+  __delay_cycles(20000);
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_BB(1)){return HWREG(DEBUG_REG);}
   /*2Ci.I2C_CON with 8603h or 8601h (F/S mode) */
   /* write 8601h (no STP condition)*/
@@ -326,9 +341,6 @@ long pru_i2c_driver_transmit_byte_from_graph(uint8_t address, uint8_t reg,
     uint8_t TXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.TXSTAT;
     /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUFSTAT[5:0] TXSTAT times*/
     uint8_t i;
-    uint8_t test;
-    test=PRU_I2C->I2C_DATA_bit.DATA;
-    return test;
     for(i=0;i<1;i++){
       /*TODO: check that I am writin what I want here*/
       PRU_I2C->I2C_DATA_bit.DATA=reg;
@@ -349,6 +361,146 @@ long pru_i2c_driver_transmit_byte_from_graph(uint8_t address, uint8_t reg,
     }
     /*Clear XRDY bit (see Note 1*/
     PRU_I2C->I2C_IRQSTATUS_bit.XRDY=1;
+    /*return PRU_I2C->I2C_IRQSTATUS_bit=1;*/
   }
+
+
   return 1;
 }
+
+
+long pru_i2c_driver_receive_byte_from_graph(uint8_t address, uint8_t reg,
+    uint8_t bytes,uint8_t *buffer){
+  /* this function setups the I2C based on diagram 24-20 (p5743) and for the
+     transmitter part on diagram 24-21 (p5746) */
+  if(!pru_i2c_initialized){
+     /*If bus is not initialized then try to initialized it*/
+    if(!pru_i2c_driver_init_from_graph(1,1,address)){
+    /*if(!pru_i2c_driver_init(1)){*/
+      return HWREG(DEBUG_REG);
+    }
+  }
+  /*[EXPECTED I2C_IRQENABLE_&((*PRU_I2Cmain).I2C_SBLOCK)CLR = FFFFh]*/
+  (*PRU_I2C).I2C_IRQENABLE_CLR=0xFFFF;
+  /*I2Ci.I2C_IRQSTATUS_RAW[12] BB bit = 0?*/
+  __delay_cycles(20000);
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_BB(1)){return HWREG(DEBUG_REG);}
+  /*2Ci.I2C_CON with 8603h or 8601h (F/S mode) */
+  /* write 8601h (no STP condition)*/
+  PRU_I2C->I2C_CON_bit.I2C_EN=0x1; //EN
+  PRU_I2C->I2C_CON_bit.MST=0x1; //master
+  PRU_I2C->I2C_CON_bit.TRX=0x1; //receive
+  PRU_I2C->I2C_CON_bit.STT=0x1; //STT
+  /*PRU_I2C->I2C_CON_bit.STP=0x1; //STP*/
+  /*Is ACK returned (NACK=0)? (continue if no)*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return HWREG(DEBUG_REG);}
+  /*Is arbitration lost (AL=1)?(continue if no)*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return HWREG(DEBUG_REG);}
+  /*Can update the registers (ARDY=1)?(continue if no)*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}
+  /*Is send data required to end transfer (XDR=1)?(continue if no)*/
+  /*Current implementation assumes that we do not need the draining feature*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XDR(1)){
+    /*Read I2Ci.I2C_BUFSTAT[5:0] TXSTAT to check the amount of data to be 
+      transmitted*/
+    /*int8_t TXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.TXSTAT;*/
+    /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUFSTAT[5:0] TXSTAT times*/
+    uint8_t i;
+    for(i=0;i<1;i++){
+      /*TODO: check that I am writin what I want here*/
+      PRU_I2C->I2C_DATA_bit.DATA=reg;
+    }
+    /*Clear XDR bit (see Note 1)*/
+    PRU_I2C->I2C_IRQSTATUS_bit.XDR=1;
+  }
+  /*Is send data being requested (XRDY bit=1)?*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(1)){
+    /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUF[5:0] XTRSH + 1 times */
+    /* /!\ ERROR IN DOC I2C_BUF[5:0] is TXTRSH not XTRSH*/
+    uint8_t TXTRSH_value=PRU_I2C->I2C_BUF_bit.TXTRSH;
+    uint8_t i;
+    TXTRSH_value+=1;
+    /*return reg;*/
+    for(i=0;i<TXTRSH_value;i++){
+      PRU_I2C->I2C_DATA_bit.DATA=reg;
+    }
+    /*Clear XRDY bit (see Note 1*/
+    PRU_I2C->I2C_IRQSTATUS_bit.XRDY=1;
+    /*return PRU_I2C->I2C_IRQSTATUS_bit=1;*/
+  }
+/* At the stage, the Slave adress and the register to read have been sent in 
+the bus, next step in the I2C transaction is to send another Start condition
+with the Slave adress and read the data in the bus 
+=> From now I will use Graph 20-21 from Pooling Master Receiver*/
+/* not sure about the usefullness of this delay*/
+  __delay_cycles(20000);
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return HWREG(DEBUG_REG);}
+  /*don't check if bus is busy it is off course busy*/
+  /*if(pru_i2c_poll_I2C_IRQSTATUS_RAW_BB(1)){return HWREG(DEBUG_REG);}*/
+  /*2Ci.I2C_CON with 8403h or 8401h (F/S mode) */
+  /* write 8403h (STP condition this time)*/
+  /*PRU_I2C->I2C_CON_bit.I2C_EN=0x1; //EN*/
+  PRU_I2C->I2C_CON_bit.MST=0x1; //master
+  PRU_I2C->I2C_CON_bit.TRX=0x0; //receive
+  PRU_I2C->I2C_CON_bit.STT=0x1; //STT
+  PRU_I2C->I2C_CON_bit.STP=0x1; //STP
+  /*Is ACK returned (NACK=0)? (continue if no)*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return HWREG(DEBUG_REG);}
+  /*Is arbitration lost (AL=1)?(continue if no)*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return HWREG(DEBUG_REG);}
+  /*Can update the registers (ARDY=1)?(continue if no)*/
+/*TODO: check why ARDY=1 in this case*/
+  /*if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}*/
+  /*Is send data required to end transfer (XDR=1)?(continue if no)*/
+  /*Current implementation assumes that we do not need the draining feature*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_RDR(1)){
+    /*Read I2Ci.I2C_BUFSTAT[13:8] RXSTAT to check the amount of data to be 
+      received*/
+    int8_t RXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.RXSTAT;
+    /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUFSTAT[13:8] RXSTAT times*/
+    uint8_t i;
+    for(i=0;i<RXSTAT_value;i++){
+      /*TODO: check that I am writin what I want here*/
+      reg=PRU_I2C->I2C_DATA_bit.DATA;
+    }
+    /*Clear RDR bit (see Note 1)*/
+    PRU_I2C->I2C_IRQSTATUS_bit.RDR=1;
+  }
+  /*Is enough  data being received (RRDY bit=1)?*/
+  if(pru_i2c_poll_I2C_IRQSTATUS_RAW_RRDY(1)){
+    /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUF[13:0] XTRSH + 1 times */
+    /* /!\ ERROR IN DOC I2C_BUF[13:8] is RXTRSH not RTRSH*/
+    uint8_t RXTRSH_value=PRU_I2C->I2C_BUF_bit.RXTRSH;
+    uint8_t i;
+    RXTRSH_value+=1;
+    /*return reg;*/
+    for(i=0;i<RXTRSH_value;i++){
+      /*TODO: Check that I am actually doing what I am suppose to here ! */
+      reg=PRU_I2C->I2C_DATA_bit.DATA;
+    }
+    /*Clear RRDY bit (see Note 1*/
+    PRU_I2C->I2C_IRQSTATUS_bit.RRDY=1;
+    /*return PRU_I2C->I2C_IRQSTATUS_bit=1;*/
+  }
+  return reg;
+}
+
+
+
+uint8_t pru_i2c_driver_software_reset(uint8_t i2cDevice){
+  /*24.1.4.3 HS I2C Software Reset*/
+  /*1. Ensure that the module is disabled */
+  /*   (clear the I2Ci.I2C_CON[15] I2C_EN bit to 0).*/
+  PRU_I2C->I2C_CON_bit.I2C_EN=0x0;
+  /*2. Set the I2Ci.I2C_SYSC[1] SRST bit to 1.*/
+  PRU_I2C->I2C_SYSC_bit.SRST=0x1;
+  /*3. Enable the module by setting I2Ci.I2C_CON[15] I2C_EN bit to 1.*/
+  PRU_I2C->I2C_CON_bit.I2C_EN=0x1;
+  /*4. Check the I2Ci.I2C_SYSS[0] RDONE bit until it is set to 1 to indicate*/
+  /*   the software reset is complete.*/
+  /* Wait 8 cycles for everything to complete, 8 found experimentaly*/
+  __delay_cycles(8);
+  return  PRU_I2C->I2C_SYSS_bit.RDONE;
+}
+
+
