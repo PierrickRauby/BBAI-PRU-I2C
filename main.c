@@ -98,12 +98,11 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
           /* 1st do a reset of the I2C bus*/
           count=pru_i2c_driver_software_reset(1);
           /*pru_i2c_driver_init_from_graph(1,1,address);*/
-          count=pru_i2c_driver_init_from_graph(1,1,address);
+          count=pru_i2c_driver_init(1,1,address);
           /*pru_i2c_driver_init(1);*/
           /*count=pru_i2c_driver_transmit_byte_from_graph(address,reg,bytes,*/
               /*result);*/
-          count=pru_i2c_driver_receive_byte_from_graph(address,reg,bytes,
-              result);
+          count=pru_i2c_driver_receive_byte(address,reg,bytes,result);
           sample=(long)count;
           /*sample=(long)*(0x4807A024);*/
           /*sample=HWREG(0x4807A024);*/
