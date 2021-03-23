@@ -61,13 +61,13 @@ The output is the value written in the Portrait Landscape register.
 ## Structure of the repository? 
 
 The project is composed of different folders:
-- [pru_codes](): contains the `main.c` that call the I2C function and setups the
+- [pru_codes](pru_codes/): contains the `main.c` that call the I2C function and setups the
   BUS depending on the request send from the user space via rpmsg, a `Makefile` 
   to compile the PRU codes, stop the PRU1, place the firmware and start the PRU.
   The folder also includes the driver file `am572x_pru_i2c_driver.pru1_1.c` with 
   the I2C fonctions. Inside pru_codes the  `include` folder contains the struct 
   that describes the HSI2C registers. 
-- [user_space](): present an example of user space code using rpmsg to tell
+- [user_space](user_space/): present an example of user space code using rpmsg to tell
   the PRU to trigger an I2C transaction. The result of the transaction is then 
   sent to the user space with rpmsg.
 
