@@ -56,7 +56,7 @@ cd user_space
 make
 ./user_space
 ```
-The output is the value written in the Portrait Landscap register. 
+The output is the value written in the Portrait Landscape register. 
 
 ## Structure of the repository? 
 
