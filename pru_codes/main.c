@@ -31,7 +31,8 @@ volatile register unsigned int __R31;
 /* Host-0 Interrupt sets bit 30 in register R31 */
 #define HOST_INT            ((uint32_t) 1 << 31)
 
-/* The PRU-ICSS system events used for RPMsg are defined in the Linux device tree
+/* The PRU-ICSS system events used for RPMsg are defined in the Linux 
+   device tree
  * PRU0 uses system event 16 (To ARM) and 17 (From ARM)
  * PRU1 uses system event 18 (To ARM) and 19 (From ARM)
  * Be sure to change the values in resource_table_0.h too.
@@ -58,7 +59,8 @@ uint32_t *gpio5 = (uint32_t *)GPIO5;
 volatile pruI2C *PRU_I2Cmain=&CT_I2C1;
 uint8_t pru_i2c_test_function( uint8_t i2cDevice){
 
-    /* Allow OCP master port access by the PRU so the PRU can read external memories */
+    /* Allow OCP master port access by the PRU so the PRU can read external 
+       memories */
     CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
     // This line is different between AM335x and Am5729 
     CT_INTC.SICR_bit.STATUS_CLR_INDEX = FROM_ARM_HOST;
@@ -99,14 +101,18 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
           long count;
           /* 1st do a reset of the I2C bus*/
           count=pru_i2c_driver_software_reset(1);
+          /* Initialize the i2c bus 1 for a 2 byte transaction*/
           count=pru_i2c_driver_init(1,2,address);
+          /* Transmit 1 bit with sensor register */
           count=pru_i2c_driver_transmit_byte(address,reg,bytes,data_transmit);
-          /*count=pru_i2c_driver_init(1,1,address);*/
+          /* Receive the data from the sensor register specified above*/
           count=pru_i2c_driver_receive_byte(address,reg,bytes,result);
+          /* format the data before sending to user space */ 
           sample=(long)count;
           memcpy(payload, "\0\0\0\0\0\0\0\0\0\0\0", 11);
           ltoa((long)sample, payload);
           len = strlen(payload) + 1;
+          /* send data to user space with RPmsg */
           pru_rpmsg_send(&transport, dst, src, payload, 11);
     }
       }

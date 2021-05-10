@@ -17,7 +17,7 @@
 #include <stdint.h>
 #include <pru_cfg.h>
 #include <stdio.h>
-#include <stdlib.h>            // atoi
+#include <stdlib.h>
 #include <string.h>
 #include <pru_intc.h>
 #include <rsc_types.h>
@@ -28,6 +28,7 @@
 
 /*#define CM_L4PER_I2C1_CLKCTRL 0x4A0097A0 //(p1079)*/
 /* WARNING: the next adress for I2C1 is not correct and actually point to i2c4*/
+/*          this is for debugging purpose as and should be changed to i2c1*/
 #define CM_L4PER_I2C1_CLKCTRL 0x4A0097B8 //(p1079)
 #define MAX_CYCLES_WAITING    200000 // max cycle of pru clock to wait
 #define DEBUG_REG             0x4807A024 // IRQSTATUS_RAW
@@ -39,26 +40,26 @@ uint8_t pru_i2c_initialized=0;
    these function return the value of the bit and poll for 1us max 20000 cycles
    at PRU clock of 200MHz*/
 uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_XDR(uint8_t i2cDevice){
-  /* Test if transmist draining IRQ enable, return 1 if yes */
+  /* Test if TRANSMIST draining IRQ enable, return 1 if yes */
   uint32_t ticks = 0;
   while (PRU_I2C->I2C_IRQSTATUS_RAW_bit.XDR){
     ticks++;
     if (ticks > MAX_CYCLES_WAITING){
-      return 1; /*Bus is occupied*/
+      return 1; /* Transmit Draining feature enabled */
     }
   }
-  return 0; /*Bus is free*/
+  return 0; /* Transmit Draining feature inactive */
 }
 uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_RDR(uint8_t i2cDevice){
-  /* Test if receive  draining IRQ enable, return 1 if yes */
+  /* Test if RECEIVE draining IRQ enable, return 1 if yes */
   uint32_t ticks = 0;
   while (PRU_I2C->I2C_IRQSTATUS_RAW_bit.RDR){
     ticks++;
     if (ticks > MAX_CYCLES_WAITING){
-      return 1; /*Bus is occupied*/
+      return 1; /* Received Draining feature enabled*/
     }
   }
-  return 0; /*Bus is free*/
+  return 0; /*Received Draining feature inactive*/
 }
 uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_BB(uint8_t i2cDevice){
   /* Test if Bus is free return 0 if yes */
@@ -72,24 +73,26 @@ uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_BB(uint8_t i2cDevice){
   return 0; /*Bus is free*/
 }
 uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(uint8_t i2cDevice){
+  /* Test if Transmit data ready, return 1 if yes*/
   uint32_t ticks = 0;
   while (!PRU_I2C->I2C_IRQSTATUS_RAW_bit.XRDY){
     ticks++;
     if (ticks > MAX_CYCLES_WAITING){
-      return 0;
+      return 0; /*Transmission ongoing*/
     }
   }
-  return 1;
+  return 1; /* Transimission ready */
 }
 uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_RRDY(uint8_t i2cDevice){
+  /* Test if Receive data ready, return 1 if yes*/
   uint32_t ticks = 0;
   while (!PRU_I2C->I2C_IRQSTATUS_RAW_bit.RRDY){
     ticks++;
     if (ticks > MAX_CYCLES_WAITING){
-      return 0;
+      return 0; /* No data available */
     }
   }
-  return 1;
+  return 1; /* Receive data available */
 }
 uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(uint8_t i2cDevice){
   /* Test if Access is ready return 1 if yes*/
@@ -125,15 +128,16 @@ uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(uint8_t i2cDevice){
   return 0; /* Normal operation*/
 }
 uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_BF(uint8_t i2cDevice){
+  /*Test if Bus is free*/
   uint32_t ticks = 0;
   while (PRU_I2C->I2C_IRQSTATUS_RAW_bit.BF){
     ticks++;
     if (ticks > MAX_CYCLES_WAITING)
     {
-      return 0; //Bus is free
+      return 0; /* No action */
     }
   }
-  return 1; //Bus is ready
+  return 1; /*Bus is ready */
 }
 
 
@@ -164,11 +168,6 @@ uint8_t pru_i2c_driver_init(uint8_t i2cDevice, uint8_t dcount,
   PRU_I2C->I2C_SA_bit.SA=address;
   /*Write I2Ci.I2C_CNT[15:0] DCOUNT bit field (master mode)*/
   PRU_I2C->I2C_CNT_bit.DCOUNT=dcount;
-  /*Write I2Ci.I2C_IRQENABLE_SET register (enable interrupt)*/
-  /*set bit 4,3,2,1 and 0 (p5766)*/
-  /* No need to set I2C_IRQENABLE_SET bc I am using pooling*/
-  /*Write I2Ci.I2C_BUF register (for DMA use)*/
-  /* Nothing done here I am not using DMA*/
   return 1;
 }
 
@@ -197,8 +196,13 @@ long pru_i2c_driver_transmit_byte(uint8_t address, uint8_t reg,
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return HWREG(DEBUG_REG);}
   /*Is arbitration lost (AL=1)?(continue if no)*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return HWREG(DEBUG_REG);}
-  /*Can update the registers (ARDY=1)?(continue if no)*/
-  /*if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}*/
+  /*Can update the registers (ARDY=1)?(continue if no)*/ 
+  /* Actually different logic, continue if yes cf. e2e post:
+    https://e2e.ti.com/support/processors-group/processors/f/
+    processors-forum/987174/am5729-am5729-i2c-bus-ardy-register-logic
+    /3663134#3663134 
+    */
+  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}
   /*Is send data required to end transfer (XDR=1)?(continue if no)*/
   /*Current implementation assumes that we do not need the draining feature*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XDR(1)){
@@ -213,10 +217,6 @@ long pru_i2c_driver_transmit_byte(uint8_t address, uint8_t reg,
     }
     /*Clear XDR bit (see Note 1)*/
     PRU_I2C->I2C_IRQSTATUS_bit.XDR=1;
-
-    /*uint8_t ret_value=PRU_I2C->I2C_CNT_bit.DCOUNT;*/
-    uint8_t ret_value=58;
-    return ret_value;
   }
   /*Is send data being requested (XRDY bit=1)?*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(1)){
@@ -300,8 +300,12 @@ long pru_i2c_driver_receive_byte(uint8_t address, uint8_t reg,
   /*Is arbitration lost (AL=1)?(continue if no)*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_AL(1)){return HWREG(DEBUG_REG);}
   /*Can update the registers (ARDY=1)?(continue if no)*/
-  /*if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}*/
-  /*if(pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return 314;}*/
+  /* Actually different logic, continue if yes cf. e2e post:
+    https://e2e.ti.com/support/processors-group/processors/f/
+    processors-forum/987174/am5729-am5729-i2c-bus-ardy-register-logic
+    /3663134#3663134 
+    */
+  if(!pru_i2c_poll_I2C_IRQSTATUS_RAW_ARDY(1)){return HWREG(DEBUG_REG);}
   /*Is send data required to end transfer (XDR=1)?(continue if no)*/
   /*Current implementation assumes that we do not need the draining feature*/
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XDR(1)){
@@ -387,6 +391,7 @@ with the Slave adress and read the data in the bus
     /*return PRU_I2C->I2C_IRQSTATUS_bit=1;*/
   }
   return reg;
+
 }
 
 uint8_t pru_i2c_driver_software_reset(uint8_t i2cDevice){
