@@ -31,7 +31,11 @@ uint8_t pru_i2c_driver_init(uint8_t i2cDevice, uint8_t dcount,
     uint8_t address);
 long pru_i2c_driver_transmit_byte(uint8_t address, uint8_t reg,
     uint8_t bytes, uint8_t *buffer);
+long pru_i2c_driver_transmit_bytes(uint8_t address, uint8_t reg,
+    uint8_t bytes, uint8_t *buffer);
 long pru_i2c_driver_receive_byte(uint8_t address, uint8_t reg,
+    uint8_t bytes,uint8_t *buffer);
+long pru_i2c_driver_receive_bytes(uint8_t address, uint8_t reg,
     uint8_t bytes,uint8_t *buffer);
 uint8_t pru_i2c_driver_software_reset(uint8_t i2cDevice);
 #endif /* AM572x_PRU_I2C_DRIVER_H_ */
