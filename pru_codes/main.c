@@ -86,39 +86,42 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
         while (pru_rpmsg_receive(&transport, &src, &dst, payload, &len) 
             == PRU_RPMSG_SUCCESS) {
           uint8_t address=0x1D;
+          /*uint16_t address=0x82;*/
+          /*uint16_t address=0x41;*/
           uint8_t reg=0x11;
-          uint8_t reg_read_back=0x11;
-          uint8_t result[16];
-          uint8_t data_transmit[7];
-          data_transmit[0]=0x80;
-          data_transmit[1]=0x0F;
-          data_transmit[2]=0xC7;
-          data_transmit[3]=0x09;
-          data_transmit[4]=0x40;
-          data_transmit[5]=0x14;
-          data_transmit[6]=0xc8;
-
-          uint8_t data_transmit_0[1]={0x40};
-          uint8_t data_transmit_1[1]={0x12};
-          uint8_t data_transmit_2[1]={0x41};
-          uint8_t data_transmit_3[1]={0x13};
-          uint8_t data_transmit_4[1]={0xc7};
-          uint8_t data_transmit_5[1]={0x14};
-          uint8_t data_transmit_6[1]={0xc8};
-          uint8_t data_transmit_7[1]={0x15};
-          uint8_t data_transmit_8[1]={0x70};
-          uint8_t data_transmit_9[1]={0x18};
-          uint8_t data_transmit_10[1]={0xF4};
-          uint8_t bytes=10;
-          uint8_t multi_write_bytes=8;
+          /*uint16_t reg=0x00;*/
+          /*uint8_t reg_read_back=0x11;*/
+          uint16_t result[16];
+          /*uint8_t data_transmit[7];*/
+          /*data_transmit[0]=0x80;*/
+          /*data_transmit[1]=0x0F;*/
+          /*data_transmit[2]=0xC7;*/
+          /*data_transmit[3]=0x09;*/
+          /*data_transmit[4]=0x40;*/
+          /*data_transmit[5]=0x14;*/
+          /*data_transmit[6]=0xc8;*/
+/**/
+          /*uint8_t data_transmit_0[1]={0x40};*/
+          /*uint8_t data_transmit_1[1]={0x12};*/
+          /*uint8_t data_transmit_2[1]={0x41};*/
+          /*uint8_t data_transmit_3[1]={0x13};*/
+          /*uint8_t data_transmit_4[1]={0xc7};*/
+          /*uint8_t data_transmit_5[1]={0x14};*/
+          /*uint8_t data_transmit_6[1]={0xc8};*/
+          /*uint8_t data_transmit_7[1]={0x15};*/
+          /*uint8_t data_transmit_8[1]={0x70};*/
+          /*uint8_t data_transmit_9[1]={0x18};*/
+          /*uint8_t data_transmit_10[1]={0xF4};*/
+          /*uint8_t bytes=10;*/
+          /*uint8_t multi_write_bytes=8;*/
           long count,returned_value;
           returned_value=0;
           /* 1st do a reset of the I2C bus*/
           count=pru_i2c_driver_software_reset(1);
           /* Initialize the i2c bus 1 for a 2 byte transaction*/
           /*count=pru_i2c_driver_init(1,2,address);*/
-          returned_value=pru_i2c_driver_transmit_bytes(address,
-              reg,multi_write_bytes,data_transmit);
+          /*returned_value=pru_i2c_driver_transmit_bytes(address,*/
+              /*reg,multi_write_bytes,data_transmit);*/
           // =------------Write single byte multiple times
               /*count=pru_i2c_driver_transmit_byte(address,*/
                   /*reg,1,data_transmit_0);*/
@@ -145,16 +148,15 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
                   /*0x15,0,result);*/
           /* Receive the data from the sensor register specified above*/
           // Read multiple bytes (Not working yet!)
-          /*returned_value=pru_i2c_driver_receive_byte(address,*/
-              /*reg,0,result);*/
+          returned_value=pru_i2c_driver_receive_byte(address,
+              reg,0,result);
           /*count=pru_i2c_driver_software_reset(1);*/
           /*count=pru_i2c_driver_transmit_byte(address,*/
               /*reg,0,data_transmit_6);*/
-          returned_value=pru_i2c_driver_receive_bytes(address,
-              reg,multi_write_bytes,result);
-          /* format the data before sending to user space */ 
-          sample=(long)returned_value;
-          sample=(long)result[2];
+          /*returned_value=pru_i2c_driver_receive_bytes(address,*/
+              /*reg,multi_write_bytes,result);*/
+          sample=(long)result[0];
+          /*sample=returned_value;*/
           memcpy(payload, "\0\0\0\0\0\0\0\0\0\0\0", 11);
           ltoa((long)sample, payload);
           len = strlen(payload) + 1;

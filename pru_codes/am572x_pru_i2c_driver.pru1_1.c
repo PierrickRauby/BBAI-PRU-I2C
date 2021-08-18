@@ -26,13 +26,13 @@
 #include "am572x_pru_i2c_driver.h"
 #include "Adafruit_MMA8451.h"
 
-
-/*#define CM_L4PER_I2C1_CLKCTRL 0x4A0097A0 //(p1079)*/
+// correct Clock for I2C1
+/*#define CM_L4PER_I2C1_CLKCTRL 0x4A0097A0 //(p1079) //adress at */
 /* WARNING: the next adress for I2C1 is not correct and actually point to i2c4*/
 /*          this is for debugging purpose as and should be changed to i2c1*/
 #define CM_L4PER_I2C1_CLKCTRL 0x4A0097B8 //(p1079)
 #define MAX_CYCLES_WAITING    200000 // max cycle of pru clock to wait
-#define DEBUG_REG             0x4807A024 // IRQSTATUS_RAW
+#define DEBUG_REG             0x48070024 // IRQSTATUS_RAW
 
 volatile pruI2C *PRU_I2C=&CT_I2C1;
 uint8_t pru_i2c_initialized=0;
@@ -141,8 +141,8 @@ uint8_t pru_i2c_poll_I2C_IRQSTATUS_RAW_BF(uint8_t i2cDevice){
 }
 /* The following function use the section 24.1.5.1.1.3 (p5742) of the TRM
    the diagramme used are Figure 24-19 to Figure 24-21*/
-uint8_t pru_i2c_driver_init(uint8_t i2cDevice, uint8_t dcount,
-    uint8_t address){
+uint8_t pru_i2c_driver_init(uint8_t i2cDevice, uint16_t dcount,
+    uint16_t address){
   /* this function setups the I2C based on diagram 24-19 (p5743)*/
   /* Close the gate to provide clock to I2C*/
   /*if(HWREG(CM_L4PER_I2C1_CLKCTRL)!=0x2){*/
@@ -165,6 +165,9 @@ uint8_t pru_i2c_driver_init(uint8_t i2cDevice, uint8_t dcount,
   /* If in master mode I need to configure SA an DCOUNT*/
   /*TODO: implement if test for master mode*/
   /*Write I2Ci.I2C_SA[9:0] SA bit field (master mode)*/
+  /*if(address>0x7f){*/
+  /*PRU_I2C->I2C_CON_bit.XSA=0x1;*/
+  /*}*/
   PRU_I2C->I2C_SA_bit.SA=address;
   /*Write I2Ci.I2C_CNT[15:0] DCOUNT bit field (master mode)*/
   PRU_I2C->I2C_CNT_bit.DCOUNT=dcount;
@@ -172,8 +175,8 @@ uint8_t pru_i2c_driver_init(uint8_t i2cDevice, uint8_t dcount,
   return 1;
 }
 
-long pru_i2c_driver_transmit_byte(uint8_t address, uint8_t reg,
-    uint8_t bytes,uint8_t *buffer){
+uint8_t pru_i2c_driver_transmit_byte(uint16_t address, uint16_t reg,
+    uint16_t bytes,uint16_t *buffer){
   /* this function setups the I2C based on diagram 24-20 (p5744)*/
   if(!pru_i2c_initialized){
      /*If bus is not initialized then try to initialized it*/
@@ -234,7 +237,7 @@ long pru_i2c_driver_transmit_byte(uint8_t address, uint8_t reg,
       transmitted*/
     uint8_t TXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.TXSTAT;
     /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUFSTAT[5:0] TXSTAT times*/
-    uint8_t i;
+    uint16_t i;
     for(i=0;i<bytes;i++){
       PRU_I2C->I2C_DATA_bit.DATA=buffer[0];
     }
@@ -256,8 +259,8 @@ long pru_i2c_driver_transmit_byte(uint8_t address, uint8_t reg,
   }
     return 1;
 }
-long pru_i2c_driver_transmit_bytes(uint8_t address, uint8_t reg,
-    uint8_t bytes,uint8_t *buffer){
+uint8_t pru_i2c_driver_transmit_bytes(uint16_t address, uint16_t reg,
+    uint16_t bytes,uint16_t *buffer){
   /* this function setups the I2C based on diagram 24-20 (p5744)*/
   if(!pru_i2c_initialized){
     if(!pru_i2c_driver_init(1,bytes+1,address)){
@@ -283,9 +286,8 @@ long pru_i2c_driver_transmit_bytes(uint8_t address, uint8_t reg,
     if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XDR(1)){
       /*Read I2Ci.I2C_BUFSTAT[5:0] TXSTAT to check the amount of data to be 
         transmitted*/
-      uint8_t TXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.TXSTAT;
+      uint16_t TXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.TXSTAT;
       /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUFSTAT[5:0] TXSTAT times*/
-      uint8_t i;
       /*for(i=0;i<1;i++){*///removed that because I only send the register here
         /*TODO: check that I am writin what I want here*/
         PRU_I2C->I2C_DATA_bit.DATA=reg;
@@ -297,17 +299,16 @@ long pru_i2c_driver_transmit_bytes(uint8_t address, uint8_t reg,
     if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(1)){
       /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUF[5:0] XTRSH + 1 times */
       /* /!\ ERROR IN DOC I2C_BUF[5:0] is TXTRSH not XTRSH*/
-      uint8_t TXTRSH_value=PRU_I2C->I2C_BUF_bit.TXTRSH;
-      uint8_t i;
+      uint16_t TXTRSH_value=PRU_I2C->I2C_BUF_bit.TXTRSH;
+      uint16_t i;
       TXTRSH_value+=1;
-      /*return reg;*/
       for(i=0;i<TXTRSH_value;i++){ // not shure about that ! 
         PRU_I2C->I2C_DATA_bit.DATA=reg;
       }
       /*Clear XRDY bit (see Note 1*/
       PRU_I2C->I2C_IRQSTATUS_bit.XRDY=1;
     }
-  int l;
+  uint16_t l;
   for(l=0;l<bytes;l++){
   __delay_cycles(6000); 
     // Sending the data now that I have let the device know
@@ -321,7 +322,7 @@ long pru_i2c_driver_transmit_bytes(uint8_t address, uint8_t reg,
       transmitted*/
     uint8_t TXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.TXSTAT;
     /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUFSTAT[5:0] TXSTAT times*/
-    uint8_t i;
+    uint16_t i;
     for(i=0;i<bytes;i++){
       /*TODO: check that I am writing what I want here*/
       PRU_I2C->I2C_DATA_bit.DATA=buffer[l];
@@ -334,8 +335,8 @@ long pru_i2c_driver_transmit_bytes(uint8_t address, uint8_t reg,
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(1)){
     /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUF[5:0] XTRSH + 1 times */
     /* /!\ ERROR IN DOC I2C_BUF[5:0] is TXTRSH not XTRSH*/
-    uint8_t TXTRSH_value=PRU_I2C->I2C_BUF_bit.TXTRSH;
-    uint8_t i;
+    uint16_t TXTRSH_value=PRU_I2C->I2C_BUF_bit.TXTRSH;
+    uint16_t i;
     TXTRSH_value+=1;
     for(i=0;i<TXTRSH_value;i++){
       PRU_I2C->I2C_DATA_bit.DATA=buffer[l];
@@ -347,8 +348,8 @@ long pru_i2c_driver_transmit_bytes(uint8_t address, uint8_t reg,
     return 1;
 }
 
-long pru_i2c_driver_receive_byte(uint8_t address, uint8_t reg,
-    uint8_t bytes,uint8_t *buffer){
+uint8_t pru_i2c_driver_receive_byte(uint16_t address, uint16_t reg,
+    uint16_t bytes,uint16_t *buffer){
   /* this function setups the I2C based on diagram 24-20 (p5743) and for the
      transmitter part on diagram 24-21 (p5746) */
   if(!pru_i2c_initialized){
@@ -378,11 +379,7 @@ long pru_i2c_driver_receive_byte(uint8_t address, uint8_t reg,
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XDR(1)){
     /*Read I2Ci.I2C_BUFSTAT[5:0] TXSTAT to check the amount of data to be 
       transmitted*/
-    uint8_t i;
-    /*for(i=0;i<1;i++){*/ // removed that bc I only want to send the register
-      /*TODO: check that I am writin what I want here*/
     PRU_I2C->I2C_DATA_bit.DATA=reg;
-    /*}*/
     /*Clear XDR bit (see Note 1)*/
     PRU_I2C->I2C_IRQSTATUS_bit.XDR=1;
   }
@@ -390,10 +387,9 @@ long pru_i2c_driver_receive_byte(uint8_t address, uint8_t reg,
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(1)){
     /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUF[5:0] XTRSH + 1 times */
     /* /!\ ERROR IN DOC I2C_BUF[5:0] is TXTRSH not XTRSH*/
-    uint8_t TXTRSH_value=PRU_I2C->I2C_BUF_bit.TXTRSH;
-    uint8_t i;
+    uint16_t TXTRSH_value=PRU_I2C->I2C_BUF_bit.TXTRSH;
+    uint16_t i;
     TXTRSH_value+=1;
-    /*return reg;*/
     for(i=0;i<TXTRSH_value;i++){
       PRU_I2C->I2C_DATA_bit.DATA=reg;
     }
@@ -419,12 +415,11 @@ long pru_i2c_driver_receive_byte(uint8_t address, uint8_t reg,
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_RDR(1)){
     /*Read I2Ci.I2C_BUFSTAT[13:8] RXSTAT to check the amount of data to be 
       received*/
-    int8_t RXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.RXSTAT;
+    int16_t RXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.RXSTAT;
     /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUFSTAT[13:8] RXSTAT times*/
-    uint8_t i;
+    uint16_t i;
     for(i=0;i<RXSTAT_value;i++){
-      /*TODO: check that I am writin what I want here*/
-      reg=PRU_I2C->I2C_DATA_bit.DATA;
+      buffer[i]=PRU_I2C->I2C_DATA_bit.DATA;
     }
     /*Clear RDR bit (see Note 1)*/
     PRU_I2C->I2C_IRQSTATUS_bit.RDR=1;
@@ -433,13 +428,12 @@ long pru_i2c_driver_receive_byte(uint8_t address, uint8_t reg,
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_RRDY(1)){
     /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUF[13:0] XTRSH + 1 times */
     /* /!\ ERROR IN DOC I2C_BUF[13:8] is RXTRSH not RTRSH*/
-    uint8_t RXTRSH_value=PRU_I2C->I2C_BUF_bit.RXTRSH;
-    uint8_t i;
+    uint16_t RXTRSH_value=PRU_I2C->I2C_BUF_bit.RXTRSH;
+    uint16_t i;
     RXTRSH_value+=1;
     /*return reg;*/
     for(i=0;i<RXTRSH_value;i++){
-      /*TODO: Check that I am actually doing what I am suppose to here ! */
-      buffer=PRU_I2C->I2C_DATA_bit.DATA;
+      buffer[i]=PRU_I2C->I2C_DATA_bit.DATA;
     }
     /*Clear RRDY bit (see Note 1*/
     PRU_I2C->I2C_IRQSTATUS_bit.RRDY=1;
@@ -448,8 +442,8 @@ long pru_i2c_driver_receive_byte(uint8_t address, uint8_t reg,
   return 0;
 }
 
-long pru_i2c_driver_receive_bytes(uint8_t address, uint8_t reg,
-    uint8_t bytes,uint8_t *buffer){
+uint8_t pru_i2c_driver_receive_bytes(uint16_t address, uint16_t reg,
+    uint16_t bytes,uint16_t *buffer){
   /* this function setups the I2C based on diagram 24-20 (p5743) and for the
      transmitter part on diagram 24-21 (p5746) */
   if(!pru_i2c_initialized){
@@ -476,7 +470,6 @@ long pru_i2c_driver_receive_bytes(uint8_t address, uint8_t reg,
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XDR(1)){
     /*Read I2Ci.I2C_BUFSTAT[5:0] TXSTAT to check the amount of data to be 
       transmitted*/
-    uint8_t i;
     PRU_I2C->I2C_DATA_bit.DATA=reg;
     /*Clear XDR bit (see Note 1)*/
     PRU_I2C->I2C_IRQSTATUS_bit.XDR=1;
@@ -485,8 +478,7 @@ long pru_i2c_driver_receive_bytes(uint8_t address, uint8_t reg,
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_XRDY(1)){
     /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUF[5:0] XTRSH + 1 times */
     /* /!\ ERROR IN DOC I2C_BUF[5:0] is TXTRSH not XTRSH*/
-    uint8_t TXTRSH_value=PRU_I2C->I2C_BUF_bit.TXTRSH;
-    uint8_t i;
+    uint16_t TXTRSH_value=PRU_I2C->I2C_BUF_bit.TXTRSH;
     TXTRSH_value+=1;
     PRU_I2C->I2C_DATA_bit.DATA=reg;
     /*Clear XRDY bit (see Note 1*/
@@ -509,7 +501,7 @@ long pru_i2c_driver_receive_bytes(uint8_t address, uint8_t reg,
   PRU_I2C->I2C_CON_bit.TRX=0x0; //receive
   PRU_I2C->I2C_CON_bit.STT=0x1; //STT
   PRU_I2C->I2C_CON_bit.STP=0x1; //STP
-  int l;
+  uint16_t l;
   for(l=0;l<bytes;l++){
     /*Is ACK returned (NACK=0)? (continue if no)*/
     if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return 22;}
@@ -520,9 +512,9 @@ long pru_i2c_driver_receive_bytes(uint8_t address, uint8_t reg,
     if(pru_i2c_poll_I2C_IRQSTATUS_RAW_RDR(1)){
       /*Read I2Ci.I2C_BUFSTAT[13:8] RXSTAT to check the amount of data to be 
         received*/
-      int8_t RXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.RXSTAT;
+      int16_t RXSTAT_value=PRU_I2C->I2C_BUFSTAT_bit.RXSTAT;
       /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUFSTAT[13:8] RXSTAT times*/
-      uint8_t i;
+      uint16_t i;
       for(i=0;i<RXSTAT_value;i++){
         buffer[l]=PRU_I2C->I2C_DATA_bit.DATA;
       }
@@ -533,8 +525,8 @@ long pru_i2c_driver_receive_bytes(uint8_t address, uint8_t reg,
     if(pru_i2c_poll_I2C_IRQSTATUS_RAW_RRDY(1)){
       /*Write I2Ci.I2C_DATA register for I2Ci.I2C_BUF[13:0] XTRSH + 1 times */
       /* /!\ ERROR IN DOC I2C_BUF[13:8] is RXTRSH not RTRSH*/
-      uint8_t RXTRSH_value=PRU_I2C->I2C_BUF_bit.RXTRSH;
-      uint8_t i;
+      uint16_t RXTRSH_value=PRU_I2C->I2C_BUF_bit.RXTRSH;
+      uint16_t i;
       RXTRSH_value+=1;
       /*return reg;*/
       for(i=0;i<RXTRSH_value;i++){

@@ -50,8 +50,8 @@ char readBuf[MAX_BUFFER_SIZE];
 int main(void)
 {
     struct pollfd pollfds[1];
-    int i;
-    int result = 0;
+    /*int i;*/
+    long result = 0;
 
     /* Open the rpmsg_pru character device file */
     pollfds[0].fd = open(DEVICE_NAME, O_RDWR);
