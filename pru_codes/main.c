@@ -77,9 +77,6 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
       /* Check bit 30 of register R31 to see if the ARM has kicked us */
     uint32_t *gpio5 = (uint32_t *)GPIO5;
     gpio5[GPIO_SETDATAOUT]   = USR1;  // Turn the USR1 LED on
-    /*__delay_cycles(1000000000/5);   // Wait 1/2 second*/
-    /*gpio5[GPIO_CLEARDATAOUT] = USR1;  // Off*/
-    /*__delay_cycles(1000000000/5);   // Wait 1/2 second*/
       if (__R31 & HOST_INT) {
         /* Clear the event status */
         CT_INTC.SICR_bit.STATUS_CLR_INDEX = FROM_ARM_HOST;
@@ -90,17 +87,13 @@ uint8_t pru_i2c_test_function( uint8_t i2cDevice){
           uint16_t result[16];
           /* 1st do a reset of the I2C bus*/
           pru_i2c_driver_software_reset(1);
-          /* Initialize the i2c bus 1 for a 2 byte transaction*/
           /* Receive the data from the sensor register specified above*/
-          // Read multiple bytes (Not working yet!)
           pru_i2c_driver_receive_byte(address,
               reg,0,result);
           sample=(long)result[0];
-          /*sample=returned_value;*/
           memcpy(payload, "\0\0\0\0\0\0\0\0\0\0\0", 11);
           ltoa((long)sample, payload);
           len = strlen(payload) + 1;
-          /*memcpy(payload, "ifsdfsdf", 11);*/
           /* send data to user space with RPmsg */
           pru_rpmsg_send(&transport, dst, src, payload, 11);
     }

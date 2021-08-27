@@ -166,19 +166,16 @@ uint8_t pru_i2c_driver_init(uint8_t i2cDevice, uint16_t dcount,
   /*Write I2Ci.I2C_CNT[15:0] DCOUNT bit field (master mode)*/
   PRU_I2C->I2C_CNT_bit.DCOUNT=dcount;
   /*pru_i2c_initialized=1;*/
-  return 1;
+  return 0;
 }
 
 uint8_t pru_i2c_driver_transmit_byte(uint16_t address, uint16_t reg,
     uint16_t bytes,uint16_t *buffer){
   /* this function setups the I2C based on diagram 24-20 (p5744)*/
-  if(!pru_i2c_initialized){
      /*If bus is not initialized then try to initialized it*/
-    if(!pru_i2c_driver_init(1,bytes+1,address)){
-    /*if(!pru_i2c_driver_init(1)){*/
+    if(pru_i2c_driver_init(1,bytes+1,address)){
       return 10;
     }
-  }
   /*[EXPECTED I2C_IRQENABLE_&((*PRU_I2Cmain).I2C_SBLOCK)CLR = FFFFh]*/
   (*PRU_I2C).I2C_IRQENABLE_CLR=0xFFFF;
   /*I2Ci.I2C_IRQSTATUS_RAW[12] BB bit = 0?*/
@@ -256,11 +253,9 @@ uint8_t pru_i2c_driver_transmit_byte(uint16_t address, uint16_t reg,
 uint8_t pru_i2c_driver_transmit_bytes(uint16_t address, uint16_t reg,
     uint16_t bytes,uint16_t *buffer){
   /* this function setups the I2C based on diagram 24-20 (p5744)*/
-  if(!pru_i2c_initialized){
-    if(!pru_i2c_driver_init(1,bytes+1,address)){
+    if(pru_i2c_driver_init(1,bytes+1,address)){
       return 10;
     }
-  }
   /*[EXPECTED I2C_IRQENABLE_&((*PRU_I2Cmain).I2C_SBLOCK)CLR = FFFFh]*/
   (*PRU_I2C).I2C_IRQENABLE_CLR=0xFFFF;
   /*I2Ci.I2C_IRQSTATUS_RAW[12] BB bit = 0?*/
@@ -346,13 +341,10 @@ uint8_t pru_i2c_driver_receive_byte(uint16_t address, uint16_t reg,
     uint16_t bytes,uint16_t *buffer){
   /* this function setups the I2C based on diagram 24-20 (p5743) and for the
      transmitter part on diagram 24-21 (p5746) */
-  if(!pru_i2c_initialized){
      /*If bus is not initialized then try to initialized it*/
-    if(!pru_i2c_driver_init(1,bytes+1,address)){
-    /*if(!pru_i2c_driver_init(1)){*/
+    if(pru_i2c_driver_init(1,bytes+1,address)){
       return 172;
     }
-  }
   /*[EXPECTED I2C_IRQENABLE_&((*PRU_I2Cmain).I2C_SBLOCK)CLR = FFFFh]*/
   (*PRU_I2C).I2C_IRQENABLE_CLR=0xFFFF;
   /*I2Ci.I2C_IRQSTATUS_RAW[12] BB bit = 0?*/
@@ -440,11 +432,9 @@ uint8_t pru_i2c_driver_receive_bytes(uint16_t address, uint16_t reg,
     uint16_t bytes,uint16_t *buffer){
   /* this function setups the I2C based on diagram 24-20 (p5743) and for the
      transmitter part on diagram 24-21 (p5746) */
-  if(!pru_i2c_initialized){
-    if(!pru_i2c_driver_init(1,1,address)){
+    if(pru_i2c_driver_init(1,1,address)){
       return 17;
     }
-  }
   /*[EXPECTED I2C_IRQENABLE_&((*PRU_I2Cmain).I2C_SBLOCK)CLR = FFFFh]*/
   (*PRU_I2C).I2C_IRQENABLE_CLR=0xFFFF;
   /*I2Ci.I2C_IRQSTATUS_RAW[12] BB bit = 0?*/
@@ -481,11 +471,9 @@ uint8_t pru_i2c_driver_receive_bytes(uint16_t address, uint16_t reg,
   }
   __delay_cycles(6000); 
   if(pru_i2c_poll_I2C_IRQSTATUS_RAW_NACK(1)){return 21;}
-  if(!pru_i2c_initialized){
-    if(!pru_i2c_driver_init(1,bytes,address)){
+    if(pru_i2c_driver_init(1,bytes,address)){
       return 17;
     }
-  }
   /*[EXPECTED I2C_IRQENABLE_&((*PRU_I2Cmain).I2C_SBLOCK)CLR = FFFFh]*/
   (*PRU_I2C).I2C_IRQENABLE_CLR=0xFFFF;
   /*I2Ci.I2C_IRQSTATUS_RAW[12] BB bit = 0?*/
