@@ -597,6 +597,6 @@ typedef struct {
   } pruI2C;
   // TODO: check that the next statement is correct ! :-)
 // here I define CT_I2C1 as a pruI2C, but not sure about the __attribute__ part
-  volatile __far pruI2C CT_I2C1 __attribute__((cregister("I2C1", near), peripheral));
+  volatile __far pruI2C CT_I2C4 __attribute__((cregister("I2C4", near), peripheral));
 
 #endif /*AM572x_PRU_I2C_H */

@@ -7,7 +7,7 @@
  *    - if not mentionned otherwise the page number in the comments refere to 
  *        the TRM SPRUHZ6L
  * Function:
- *    - Use the PRU to configure the i2c1
+ *    - Use the PRU to configure the i2c4
  *    - The i2c is then used to get data from the Beaglebone AI onboard ADC
  * Compile:
  *    - Compiles with the same Makefile as other PRU example in the Cloud9 
@@ -26,15 +26,11 @@
 #include "am572x_pru_i2c_driver.h"
 #include "Adafruit_MMA8451.h"
 
-// correct Clock for I2C1
-/*#define CM_L4PER_I2C1_CLKCTRL 0x4A0097A0 //(p1079) //adress at */
-/* WARNING: the next adress for I2C1 is not correct and actually point to i2c4*/
-/*          this is for debugging purpose as and should be changed to i2c1*/
-#define CM_L4PER_I2C1_CLKCTRL 0x4A0097B8 //(p1079)
+#define CM_L4PER_I2C4_CLKCTRL 0x4A0097B8 //(p1079)
 #define MAX_CYCLES_WAITING    200000 // max cycle of pru clock to wait
 #define DEBUG_REG             0x48070024 // IRQSTATUS_RAW
 
-volatile pruI2C *PRU_I2C=&CT_I2C1;
+volatile pruI2C *PRU_I2C=&CT_I2C4;
 uint8_t pru_i2c_initialized=0;
 
 /* Helper function for polling usefull,
@@ -145,9 +141,7 @@ uint8_t pru_i2c_driver_init(uint8_t i2cDevice, uint16_t dcount,
     uint16_t address){
   /* this function setups the I2C based on diagram 24-19 (p5743)*/
   /* Close the gate to provide clock to I2C*/
-  /*if(HWREG(CM_L4PER_I2C1_CLKCTRL)!=0x2){*/
-  HWREG(CM_L4PER_I2C1_CLKCTRL)=0x2;
-  /*}*/
+  HWREG(CM_L4PER_I2C4_CLKCTRL)=0x2;
   __delay_cycles(20000);   // Wait for clock to be active
   /* Write I2Ci.I2C_PSC[7:0] PSC (prescaler)*/
   /*write 0x9 to setup for fast mode (p5731).*/
