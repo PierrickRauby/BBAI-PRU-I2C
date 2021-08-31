@@ -20,7 +20,8 @@ endif
 
 CHIP=am57xx
 CHIP_REV=am572x_2_0
-PRU_DIR=/sys/class/remoteproc/remoteproc5
+#PRU_DIR=/sys/class/remoteproc/remoteproc5
+PRU_DIR=/sys/class/remoteproc/remoteproc1
 PRUN=1_1
 PROC=pru
 EXE=.out
