@@ -1,4 +1,5 @@
-# BBAI-PRU-I2C [Work in Progress]
+# BBAI-PRU-I2C 
+ __This version is for the Beaglebone AI V1 based on Ti-am5729__
 PRU I2C driver for BeagleBone AI. This work presents some simple fonction to 
 control High Speed I2C controller of the AM5729 of the BeagleBone AI. 
 __ This has been developped for the BBAI TIDL image: 4.14.108-ti-r131 __ There 
